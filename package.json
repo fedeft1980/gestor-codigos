@@ -1,0 +1,16 @@
+{
+  "name": "gestor-netflix",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "imapflow": "^1.0.171",
+    "mailparser": "^3.7.1"
+  }
+}

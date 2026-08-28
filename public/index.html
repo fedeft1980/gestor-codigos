@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FT_STORE - Gestor de Códigos Netflix</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .card {
+      background-color: #1e1e1e;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    .logo-container {
+      margin-bottom: 15px;
+    }
+
+    .logo-img {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      object-fit: cover;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      border: 2px solid #e50914;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 4px;
+      color: #ffffff;
+      font-weight: bold;
+    }
+
+    .sub {
+      color: #e50914;
+      font-size: 0.85rem;
+      font-weight: bold;
+      margin-bottom: 20px;
+      letter-spacing: 0.5px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+      text-align: left;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 0.9rem;
+      color: #ccc;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #333;
+      background-color: #2b2b2b;
+      color: #fff;
+      font-size: 1rem;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #e50914;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      background-color: #e50914;
+      color: white;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background-color: #b80710;
+    }
+
+    button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    #resultado {
+      margin-top: 20px;
+    }
+
+    .card-res {
+      padding: 15px;
+      border-radius: 6px;
+      text-align: center;
+    }
+
+    .card-exito {
+      background-color: #2b2b2b;
+      border: 1px solid #333;
+    }
+
+    .card-error {
+      background-color: #2b2b2b;
+      border: 1px solid #444;
+    }
+
+    .mensaje-exito {
+      color: #4caf50;
+      font-weight: bold;
+    }
+
+    .mensaje-error {
+      color: #f44336;
+      font-weight: bold;
+    }
+
+    .codigo-box {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #4caf50;
+      letter-spacing: 2px;
+      margin: 10px 0;
+    }
+
+    a {
+      color: #64b5f6;
+      word-break: break-all;
+    }
+
+    .enlace-hogar {
+      margin-top: 10px;
+    }
+
+    .enlace-hogar a {
+      color: #4caf50;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .enlace-hogar a:hover {
+      text-decoration: underline;
+    }
+
+    .btn-ws {
+      width: 100%;
+      background-color: #25d366;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-ws:hover {
+      background-color: #1da851;
+    }
+
+    .btn-ws svg {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .texto-ayuda {
+      color: #aaa;
+      font-size: 0.8rem;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="card">
+
+    <div class="logo-container">
+      <img src="logo.jpeg" alt="FT_STORE Logo" class="logo-img">
+    </div>
+
+    <h1>FT_STORE</h1>
+    <p class="sub">GESTOR DE CÓDIGOS NETFLIX</p>
+
+    <form id="formConsulta">
+
+      <div class="form-group">
+        <label for="correoCliente">Correo del Cliente</label>
+
+        <input
+          type="email"
+          id="correoCliente"
+          placeholder="ejemplo@correo.com"
+          required
+        >
+      </div>
+
+      <button type="submit" id="btnBuscar">
+        Buscar Código
+      </button>
+
+    </form>
+
+    <div id="resultado"></div>
+
+  </div>
+
+  <script>
+
+    const TELEFONO_SOPORTE = "5492657219227";
+
+    const form = document.getElementById('formConsulta');
+    const btnBuscar = document.getElementById('btnBuscar');
+    const contenedorResultado = document.getElementById('resultado');
+
+    form.addEventListener('submit', async (e) => {
+
+      e.preventDefault();
+
+      const correoCliente =
+        document.getElementById('correoCliente').value.trim();
+
+      btnBuscar.disabled = true;
+      btnBuscar.textContent = 'Buscando...';
+
+      contenedorResultado.style.display = 'block';
+
+      contenedorResultado.innerHTML = `
+        <div class="card-res card-exito">
+          <p style="color:#ccc;">
+            Conectando con la casilla...
+          </p>
+        </div>
+      `;
+
+      try {
+
+        const res = await fetch('/api/obtener-codigo', {
+
+          method: 'POST',
+
+          headers: {
+            'Content-Type': 'application/json'
+          },
+
+          body: JSON.stringify({
+            correoCliente
+          })
+
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.exito) {
+
+          let html = `
+            <div class="card-res card-exito">
+              <p class="mensaje-exito">
+                ¡Correo Encontrado!
+              </p>
+              <div style="font-size: 12px; margin-top: 5px; color: #aaa;">
+                <strong>Asunto:</strong> ${data.asunto}
+              </div>
+          `;
+
+          if (data.codigo) {
+
+            html += `
+              <div class="codigo-box">
+                ${data.codigo}
+              </div>
+            `;
+
+          }
+
+          if (data.enlace) {
+
+            html += `
+              <div class="enlace-hogar">
+                <a
+                  href="${data.enlace}"
+                  target="_blank"
+                >
+                  Abrir Enlace de Verificación / Hogar
+                </a>
+              </div>
+            `;
+
+          }
+
+          if (!data.codigo && !data.enlace) {
+
+            html += `
+              <p style="color:#ccc; margin-top:10px;">
+                Se encontró un correo pero no contenía
+                un código explícito ni enlace de confirmación.
+              </p>
+            `;
+
+          }
+
+          html += `</div>`;
+
+          contenedorResultado.innerHTML = html;
+
+        } else {
+
+          const mensajeError =
+            data.error ||
+            'No se encontró el correo solicitado.';
+
+          const textoMensaje =
+`Hola, no me aparece el código de activación/hogar en el sistema.
+Servicio: NETFLIX
+Correo: ${correoCliente}`;
+
+          contenedorResultado.innerHTML = `
+
+            <div class="card-res card-error">
+
+              <p class="mensaje-error">
+                ${mensajeError}
+              </p>
+
+              <p class="texto-ayuda">
+                Verifica el correo o reporta a soporte
+                a continuación.
+              </p>
+
+              <button
+                id="btnWS"
+                class="btn-ws"
+                type="button"
+              >
+
+                <svg
+                  width="20"
+                  height="20"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.842-1.001z"/>
+                </svg>
+
+                Copiar y reportar por WhatsApp
+
+              </button>
+
+            </div>
+          `;
+
+          document
+            .getElementById('btnWS')
+            .addEventListener('click', async () => {
+
+              try {
+
+                await navigator.clipboard.writeText(
+                  textoMensaje
+                );
+
+              } catch (error) {
+
+                console.log(
+                  'No se pudo copiar automáticamente'
+                );
+
+              }
+
+              const url =
+                `https://api.whatsapp.com/send?phone=${TELEFONO_SOPORTE}&text=${encodeURIComponent(textoMensaje)}`;
+
+              window.open(url, '_blank');
+
+            });
+
+        }
+
+      } catch (err) {
+
+        contenedorResultado.innerHTML = `
+
+          <div class="card-res card-error">
+
+            <p class="mensaje-error">
+              Error de conexión con el servidor.
+            </p>
+
+            <p class="texto-ayuda">
+              Intenta nuevamente en unos segundos.
+            </p>
+
+          </div>
+
+        `;
+
+      } finally {
+
+        btnBuscar.disabled = false;
+        btnBuscar.textContent = 'Buscar Código';
+
+      }
+
+    });
+
+  </script>
+
+</body>
+</html>
