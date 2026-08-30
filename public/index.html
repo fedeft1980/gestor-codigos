@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FT_STORE - Gestor de Códigos Netflix</title>
+  <title>FT_STORE - Gestor de Enlaces</title>
 
   <style>
     * {
@@ -29,7 +29,7 @@
       border-radius: 12px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
       width: 100%;
-      max-width: 400px;
+      max-width: 420px;
       text-align: center;
     }
 
@@ -47,7 +47,7 @@
     }
 
     h1 {
-      font-size: 1.5rem;
+      font-size: 1.6rem;
       margin-bottom: 4px;
       color: #ffffff;
       font-weight: bold;
@@ -59,6 +59,7 @@
       font-weight: bold;
       margin-bottom: 20px;
       letter-spacing: 0.5px;
+      text-transform: uppercase;
     }
 
     .form-group {
@@ -75,8 +76,8 @@
 
     input {
       width: 100%;
-      padding: 10px;
-      border-radius: 6px;
+      padding: 12px;
+      border-radius: 8px;
       border: 1px solid #333;
       background-color: #2b2b2b;
       color: #fff;
@@ -90,15 +91,16 @@
 
     button {
       width: 100%;
-      padding: 12px;
+      padding: 14px;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       background-color: #e50914;
       color: white;
       font-size: 1rem;
       font-weight: bold;
       cursor: pointer;
       margin-top: 10px;
+      transition: background-color 0.2s;
     }
 
     button:hover {
@@ -115,14 +117,14 @@
     }
 
     .card-res {
-      padding: 15px;
-      border-radius: 6px;
+      padding: 20px;
+      border-radius: 10px;
       text-align: center;
     }
 
     .card-exito {
-      background-color: #2b2b2b;
-      border: 1px solid #333;
+      background-color: #1a271d;
+      border: 1px solid #285430;
     }
 
     .card-error {
@@ -133,6 +135,7 @@
     .mensaje-exito {
       color: #4caf50;
       font-weight: bold;
+      font-size: 1.1rem;
     }
 
     .mensaje-error {
@@ -140,31 +143,29 @@
       font-weight: bold;
     }
 
-    .codigo-box {
-      font-size: 1.8rem;
-      font-weight: bold;
-      color: #4caf50;
-      letter-spacing: 2px;
-      margin: 10px 0;
-    }
-
-    a {
-      color: #64b5f6;
-      word-break: break-all;
-    }
-
-    .enlace-hogar {
-      margin-top: 10px;
-    }
-
-    .enlace-hogar a {
-      color: #4caf50;
-      font-weight: bold;
+    /* Botón verde gigante para el enlace de verificación */
+    .btn-enlace-gigante {
+      display: block;
+      width: 100%;
+      padding: 18px 10px;
+      margin-top: 15px;
+      border-radius: 10px;
+      background-color: #25d366;
+      color: #000000;
+      font-size: 1.05rem;
+      font-weight: 900;
       text-decoration: none;
+      text-transform: uppercase;
+      box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
+      transition: transform 0.1s, background-color 0.2s;
     }
 
-    .enlace-hogar a:hover {
-      text-decoration: underline;
+    .btn-enlace-gigante:active {
+      transform: scale(0.98);
+    }
+
+    .btn-enlace-gigante:hover {
+      background-color: #20ba5a;
     }
 
     .btn-ws {
@@ -173,7 +174,7 @@
       color: white;
       border: none;
       padding: 12px;
-      border-radius: 6px;
+      border-radius: 8px;
       font-weight: bold;
       cursor: pointer;
       margin-top: 15px;
@@ -210,7 +211,7 @@
     </div>
 
     <h1>FT_STORE</h1>
-    <p class="sub">GESTOR DE CÓDIGOS NETFLIX</p>
+    <p class="sub">GESTOR DE ENLACES DE VERIFICACIÓN</p>
 
     <form id="formConsulta">
 
@@ -226,7 +227,7 @@
       </div>
 
       <button type="submit" id="btnBuscar">
-        Buscar Código
+        Buscar Enlace
       </button>
 
     </form>
@@ -266,17 +267,13 @@
       try {
 
         const res = await fetch('/api/obtener-codigo', {
-
           method: 'POST',
-
           headers: {
             'Content-Type': 'application/json'
           },
-
           body: JSON.stringify({
             correoCliente
           })
-
         });
 
         const data = await res.json();
@@ -286,47 +283,29 @@
           let html = `
             <div class="card-res card-exito">
               <p class="mensaje-exito">
-                ¡Correo Encontrado!
+                ¡Correo Encontrado! (${data.servicio || 'Servicio'})
               </p>
-              <div style="font-size: 12px; margin-top: 5px; color: #aaa;">
+              <div style="font-size: 12px; margin-top: 6px; color: #aaa; word-break: break-word;">
                 <strong>Asunto:</strong> ${data.asunto}
               </div>
           `;
 
-          if (data.codigo) {
-
-            html += `
-              <div class="codigo-box">
-                ${data.codigo}
-              </div>
-            `;
-
-          }
-
           if (data.enlace) {
-
             html += `
-              <div class="enlace-hogar">
-                <a
-                  href="${data.enlace}"
-                  target="_blank"
-                >
-                  Abrir Enlace de Verificación / Hogar
-                </a>
-              </div>
+              <a
+                href="${data.enlace}"
+                target="_blank"
+                class="btn-enlace-gigante"
+              >
+                🔗 ABRIR ENLACE DE VERIFICACIÓN
+              </a>
             `;
-
-          }
-
-          if (!data.codigo && !data.enlace) {
-
+          } else {
             html += `
               <p style="color:#ccc; margin-top:10px;">
-                Se encontró un correo pero no contenía
-                un código explícito ni enlace de confirmación.
+                Se encontró el correo pero no contenía un enlace de verificación válido.
               </p>
             `;
-
           }
 
           html += `</div>`;
@@ -337,11 +316,10 @@
 
           const mensajeError =
             data.error ||
-            'No se encontró el correo solicitado.';
+            'No se encontró un correo válido para esta cuenta.';
 
           const textoMensaje =
-`Hola, no me aparece el código de activación/hogar en el sistema.
-Servicio: NETFLIX
+`Hola, no me aparece el enlace de verificación en el sistema.
 Correo: ${correoCliente}`;
 
           contenedorResultado.innerHTML = `
@@ -353,8 +331,7 @@ Correo: ${correoCliente}`;
               </p>
 
               <p class="texto-ayuda">
-                Verifica el correo o reporta a soporte
-                a continuación.
+                Verifica el correo o reporta a soporte a continuación.
               </p>
 
               <button
@@ -384,17 +361,9 @@ Correo: ${correoCliente}`;
             .addEventListener('click', async () => {
 
               try {
-
-                await navigator.clipboard.writeText(
-                  textoMensaje
-                );
-
+                await navigator.clipboard.writeText(textoMensaje);
               } catch (error) {
-
-                console.log(
-                  'No se pudo copiar automáticamente'
-                );
-
+                console.log('No se pudo copiar automáticamente');
               }
 
               const url =
@@ -427,7 +396,7 @@ Correo: ${correoCliente}`;
       } finally {
 
         btnBuscar.disabled = false;
-        btnBuscar.textContent = 'Buscar Código';
+        btnBuscar.textContent = 'Buscar Enlace';
 
       }
 
