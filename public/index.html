@@ -1,318 +1,408 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FT_STORE | Obtener código de acceso</title>
-<style>
-  :root{
-    --bg:#0a0a0a;
-    --card:#151515;
-    --red:#e50914;
-    --text:#f5f5f1;
-    --muted:#9a9a9a;
-    --green:#2ecc71;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0;
-    min-height:100vh;
-    font-family:'Segoe UI', Arial, sans-serif;
-    background:#0a0a0a;
-    color:var(--text);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:24px;
-    overflow-x:hidden;
-    position:relative;
-  }
-  #matrix{
-    position:fixed;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
-    z-index:0;
-    opacity:.35;
-  }
-  .card{
-    position:relative;
-    z-index:1;
-    width:100%;
-    max-width:420px;
-    background:rgba(21,21,21,.92);
-    backdrop-filter:blur(2px);
-    border:1px solid #262626;
-    border-radius:16px;
-    padding:28px 28px 32px;
-    box-shadow:0 12px 40px rgba(0,0,0,.6);
-  }
-  .logo{
-    display:block;
-    width:120px;
-    margin:0 auto 12px;
-    border-radius:50%;
-  }
-  h1{
-    text-align:center;
-    font-size:20px;
-    letter-spacing:1px;
-    margin:0 0 4px;
-    color:var(--text);
-  }
-  .subtitulo{
-    text-align:center;
-    font-size:13px;
-    color:var(--muted);
-    margin:0 0 24px;
-  }
-  form{margin-top:8px;}
-  label{
-    font-size:13px;
-    color:var(--muted);
-    display:block;
-    margin-bottom:6px;
-  }
-  input[type="email"]{
-    width:100%;
-    padding:12px 14px;
-    border-radius:8px;
-    border:1px solid #333;
-    background:#1f1f1f;
-    color:var(--text);
-    font-size:15px;
-    margin-bottom:16px;
-  }
-  input[type="email"]:focus{
-    outline:none;
-    border-color:var(--red);
-  }
-  button{
-    width:100%;
-    padding:13px;
-    border:none;
-    border-radius:8px;
-    background:var(--red);
-    color:#fff;
-    font-size:15px;
-    font-weight:700;
-    letter-spacing:.3px;
-    cursor:pointer;
-    transition:background .2s, opacity .2s;
-  }
-  button:hover{background:#f6121d;}
-  button:disabled{opacity:.6;cursor:not-allowed;}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FT_STORE - Gestor de Enlaces</title>
 
-  .result-container{
-    display:none;
-    margin-top:22px;
-  }
-  .result-container.active{
-    display:block;
-  }
-  .hora{
-    font-size:12.5px;
-    color:var(--muted);
-    margin-bottom:10px;
-  }
-  .hora strong{color:var(--text);}
-  .leyenda{
-    font-size:14px;
-    padding:12px 14px;
-    border-radius:8px;
-    margin-bottom:12px;
-    background:rgba(46,204,113,.12);
-    border:1px solid var(--green);
-    color:var(--green);
-  }
-  .success{
-    font-size:14px;
-    font-weight:700;
-    color:var(--green);
-    margin:0 0 4px;
-  }
-  .warning-box{
-    background:rgba(229,9,20,.12);
-    border:1px solid var(--red);
-    color:#ff6b6b;
-    padding:12px 14px;
-    border-radius:8px;
-    font-size:14px;
-  }
-  .error{
-    color:#ff6b6b;
-    font-size:14px;
-  }
-  .link-btn{
-    display:block;
-    text-align:center;
-    background:#fff;
-    color:#000;
-    text-decoration:none;
-    padding:12px;
-    border-radius:8px;
-    font-weight:700;
-    margin-top:6px;
-  }
-  .link-btn:hover{background:#e6e6e6;}
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
 
-  .whatsapp-btn{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    background:#25D366;
-    color:#fff;
-    text-decoration:none;
-    padding:12px;
-    border-radius:8px;
-    font-weight:700;
-    margin-top:10px;
-  }
-  .whatsapp-btn:hover{background:#1ebe57;}
-  .whatsapp-btn svg{width:18px;height:18px;fill:#fff;}
-</style>
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .card {
+      background-color: #1e1e1e;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+    }
+
+    .logo-container {
+      margin-bottom: 15px;
+    }
+
+    .logo-img {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      object-fit: cover;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      border: 2px solid #e50914;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 4px;
+      color: #ffffff;
+      font-weight: bold;
+    }
+
+    .sub {
+      color: #e50914;
+      font-size: 0.85rem;
+      font-weight: bold;
+      margin-bottom: 20px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+      text-align: left;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 0.9rem;
+      color: #ccc;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background-color: #2b2b2b;
+      color: #fff;
+      font-size: 1rem;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #e50914;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      background-color: #e50914;
+      color: white;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: #b80710;
+    }
+
+    button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    #resultado {
+      margin-top: 20px;
+    }
+
+    .card-res {
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .card-exito {
+      background-color: #1a271d;
+      border: 1px solid #285430;
+    }
+
+    .card-error {
+      background-color: #2b2b2b;
+      border: 1px solid #444;
+    }
+
+    .mensaje-exito {
+      color: #4caf50;
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+
+    .mensaje-error {
+      color: #f44336;
+      font-weight: bold;
+    }
+
+    /* Botón verde gigante para el enlace de verificación */
+    .btn-enlace-gigante {
+      display: block;
+      width: 100%;
+      padding: 18px 10px;
+      margin-top: 15px;
+      border-radius: 10px;
+      background-color: #25d366;
+      color: #000000;
+      font-size: 1.05rem;
+      font-weight: 900;
+      text-decoration: none;
+      text-transform: uppercase;
+      box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
+      transition: transform 0.1s, background-color 0.2s;
+    }
+
+    .btn-enlace-gigante:active {
+      transform: scale(0.98);
+    }
+
+    .btn-enlace-gigante:hover {
+      background-color: #20ba5a;
+    }
+
+    .btn-ws {
+      width: 100%;
+      background-color: #25d366;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-ws:hover {
+      background-color: #1da851;
+    }
+
+    .btn-ws svg {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .texto-ayuda {
+      color: #aaa;
+      font-size: 0.8rem;
+      margin-top: 8px;
+    }
+  </style>
 </head>
+
 <body>
 
-<canvas id="matrix"></canvas>
+  <div class="card">
 
-<div class="card">
-  <img src="logo.jpeg" alt="FT_STORE" class="logo">
-  <h1>FT_STORE</h1>
-  <p class="subtitulo">Obtené tu enlace de verificación</p>
+    <div class="logo-container">
+      <img src="logo.jpeg" alt="FT_STORE Logo" class="logo-img">
+    </div>
 
-  <form id="codigoForm">
-    <label for="correo">Correo del cliente</label>
-    <input type="email" id="correo" name="correo" placeholder="cliente@ejemplo.com" required>
-    <button type="submit" id="submitBtn">Obtener Enlace</button>
-  </form>
+    <h1>FT_STORE</h1>
+    <p class="sub">GESTOR DE ENLACES DE VERIFICACIÓN</p>
 
-  <div id="resultado" class="result-container"></div>
-</div>
+    <form id="formConsulta">
 
-<script>
-  // Animación de fondo estilo Matrix, liviana (poca densidad, opacidad baja)
-  const canvas = document.getElementById('matrix');
-  const ctx = canvas.getContext('2d');
+      <div class="form-group">
+        <label for="correoCliente">Correo del Cliente</label>
 
-  function ajustarTamano() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-  }
-  ajustarTamano();
-  window.addEventListener('resize', ajustarTamano);
+        <input
+          type="email"
+          id="correoCliente"
+          placeholder="ejemplo@correo.com"
+          required
+        >
+      </div>
 
-  const caracteres = '01';
-  const tamanoFuente = 16;
-  const espacioColumna = 32; // más ancho = menos columnas = menos "cargado"
-  const columnas = Math.floor(canvas.width / espacioColumna);
-  const drops = new Array(columnas).fill(0);
+      <button type="submit" id="btnBuscar">
+        Buscar Enlace
+      </button>
 
-  // Cada columna arranca en una posición y velocidad aleatoria para que no sea uniforme
-  const velocidades = drops.map(() => 0.3 + Math.random() * 0.5);
-  const activo = drops.map(() => Math.random() > 0.5); // solo la mitad de las columnas dibuja, para bajar densidad
+    </form>
 
-  function dibujar() {
-    ctx.fillStyle = 'rgba(10,10,10,0.08)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    <div id="resultado"></div>
 
-    ctx.font = tamanoFuente + 'px monospace';
+  </div>
 
-    for (let i = 0; i < columnas; i++) {
-      if (!activo[i]) continue;
+  <script>
 
-      const texto = caracteres[Math.floor(Math.random() * caracteres.length)];
-      const x = i * espacioColumna;
-      const y = drops[i] * tamanoFuente;
+    const TELEFONO_SOPORTE = "5492657219227";
 
-      ctx.fillStyle = 'rgba(0, 220, 90, 0.55)';
-      ctx.fillText(texto, x, y);
+    const form = document.getElementById('formConsulta');
+    const btnBuscar = document.getElementById('btnBuscar');
+    const contenedorResultado = document.getElementById('resultado');
 
-      if (y > canvas.height && Math.random() > 0.98) {
-        drops[i] = 0;
-      }
-      drops[i] += velocidades[i];
-    }
-  }
+    form.addEventListener('submit', async (e) => {
 
-  setInterval(dibujar, 60); // más lento = menos "cargado" visualmente
-</script>
+      e.preventDefault();
 
-<script>
-  const form = document.getElementById('codigoForm');
-  const correoInput = document.getElementById('correo');
-  const submitBtn = document.getElementById('submitBtn');
-  const resultadoDiv = document.getElementById('resultado');
+      const correoCliente =
+        document.getElementById('correoCliente').value.trim();
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
+      btnBuscar.disabled = true;
+      btnBuscar.textContent = 'Buscando...';
 
-    const correo = correoInput.value.trim();
-    if (!correo) return;
+      contenedorResultado.style.display = 'block';
 
-    submitBtn.disabled = true;
-    submitBtn.innerText = 'Buscando...';
-    resultadoDiv.className = 'result-container active';
-    resultadoDiv.innerHTML = '<p>Consultando correo...</p>';
+      contenedorResultado.innerHTML = `
+        <div class="card-res card-exito">
+          <p style="color:#ccc;">
+            Conectando con la casilla...
+          </p>
+        </div>
+      `;
 
-    try {
-      const response = await fetch('/api/obtener-codigo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ correoCliente: correo })
-      });
+      try {
 
-      const data = await response.json();
+        const res = await fetch('/api/obtener-codigo', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            correoCliente
+          })
+        });
 
-      // Hora de recepción del correo, si vino en la respuesta
-      const horaHtml = data.horaRecepcion
-        ? `<div class="hora">Recibido a las <strong>${data.horaRecepcion}</strong></div>`
-        : '';
+        const data = await res.json();
 
-      if (data.correoNoEncontrado) {
-        // Caso: No se encontró ningún correo para esa dirección
-        const numeroWhatsapp = '5492657219227';
-        const mensaje = encodeURIComponent(
-          `Hola! No se encontró ningún correo para la dirección: ${correo}`
-        );
-        const linkWhatsapp = `https://wa.me/${numeroWhatsapp}?text=${mensaje}`;
+        if (res.ok && data.exito) {
 
-        resultadoDiv.innerHTML = `
-          <div class="warning-box">
-            ⚠️ ${data.error || 'No se encontraron correos para este cliente.'}
+          let html = `
+            <div class="card-res card-exito">
+              <p class="mensaje-exito">
+                ¡Correo Encontrado! (${data.servicio || 'Servicio'})
+              </p>
+              <div style="font-size: 12px; margin-top: 6px; color: #aaa; word-break: break-word;">
+                <strong>Asunto:</strong> ${data.asunto}
+              </div>
+          `;
+
+          if (data.enlace) {
+            html += `
+              <a
+                href="${data.enlace}"
+                target="_blank"
+                class="btn-enlace-gigante"
+              >
+                🔗 ABRIR ENLACE DE VERIFICACIÓN
+              </a>
+            `;
+          } else {
+            html += `
+              <p style="color:#ccc; margin-top:10px;">
+                Se encontró el correo pero no contenía un enlace de verificación válido.
+              </p>
+            `;
+          }
+
+          html += `</div>`;
+
+          contenedorResultado.innerHTML = html;
+
+        } else {
+
+          const mensajeError =
+            data.error ||
+            'No se encontró un correo válido para esta cuenta.';
+
+          const textoMensaje =
+`Hola, no me aparece el enlace de verificación en el sistema.
+Correo: ${correoCliente}`;
+
+          contenedorResultado.innerHTML = `
+
+            <div class="card-res card-error">
+
+              <p class="mensaje-error">
+                ${mensajeError}
+              </p>
+
+              <p class="texto-ayuda">
+                Verifica el correo o reporta a soporte a continuación.
+              </p>
+
+              <button
+                id="btnWS"
+                class="btn-ws"
+                type="button"
+              >
+
+                <svg
+                  width="20"
+                  height="20"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.842-1.001z"/>
+                </svg>
+
+                Copiar y reportar por WhatsApp
+
+              </button>
+
+            </div>
+          `;
+
+          document
+            .getElementById('btnWS')
+            .addEventListener('click', async () => {
+
+              try {
+                await navigator.clipboard.writeText(textoMensaje);
+              } catch (error) {
+                console.log('No se pudo copiar automáticamente');
+              }
+
+              const url =
+                `https://api.whatsapp.com/send?phone=${TELEFONO_SOPORTE}&text=${encodeURIComponent(textoMensaje)}`;
+
+              window.open(url, '_blank');
+
+            });
+
+        }
+
+      } catch (err) {
+
+        contenedorResultado.innerHTML = `
+
+          <div class="card-res card-error">
+
+            <p class="mensaje-error">
+              Error de conexión con el servidor.
+            </p>
+
+            <p class="texto-ayuda">
+              Intenta nuevamente en unos segundos.
+            </p>
+
           </div>
-          <a href="${linkWhatsapp}" target="_blank" class="whatsapp-btn">
-            <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16.004 3C9.373 3 4 8.373 4 15.004c0 2.65.87 5.1 2.34 7.09L4.6 28.4l6.47-1.7a11.9 11.9 0 0 0 4.93 1.05h.005c6.63 0 12.004-5.373 12.004-12.004C28.008 8.373 22.635 3 16.004 3zm0 21.79h-.004a9.77 9.77 0 0 1-4.97-1.36l-.356-.21-3.84 1.01 1.03-3.74-.232-.383a9.77 9.77 0 0 1-1.5-5.1c0-5.4 4.396-9.79 9.796-9.79 2.617 0 5.077 1.02 6.93 2.87a9.73 9.73 0 0 1 2.865 6.925c0 5.4-4.394 9.78-9.72 9.78zm5.36-7.33c-.294-.147-1.74-.858-2.01-.956-.27-.098-.467-.147-.664.147-.196.294-.76.955-.933 1.152-.172.196-.343.22-.637.073-.294-.147-1.243-.458-2.367-1.46-.875-.78-1.466-1.744-1.638-2.038-.172-.294-.018-.453.13-.6.133-.132.294-.343.44-.514.147-.172.196-.294.294-.49.098-.196.049-.368-.024-.514-.073-.147-.663-1.6-.91-2.19-.24-.577-.485-.5-.663-.51-.172-.008-.368-.01-.564-.01-.196 0-.514.073-.784.368-.27.294-1.03 1.007-1.03 2.456 0 1.45 1.055 2.85 1.202 3.046.147.196 2.077 3.17 5.032 4.446.703.303 1.252.484 1.68.62.706.225 1.348.193 1.856.117.566-.084 1.74-.71 1.985-1.396.245-.686.245-1.274.172-1.396-.073-.122-.27-.196-.564-.343z"/></svg>
-            Avisar por WhatsApp
-          </a>
+
         `;
-      } else if (data.vencido || !data.exito) {
-        // Caso: Más de 15 minutos, o correo encontrado pero sin enlace
-        resultadoDiv.innerHTML = `
-          ${horaHtml}
-          <div class="warning-box">
-            ⚠️ ${data.error || 'ENLACE VENCIDO, REENVÍA'}
-          </div>
-        `;
-      } else {
-        // Caso: Correo encontrado y vigente (menos de 15 minutos)
-        resultadoDiv.innerHTML = `
-          ${horaHtml}
-          <div class="leyenda">✅ ${data.leyenda || 'Correo encontrado.'}</div>
-          <p class="success">Estado: VÁLIDO</p>
-          <a href="${data.enlace}" target="_blank" class="link-btn">🔗 Abrir Enlace de Verificación</a>
-        `;
+
+      } finally {
+
+        btnBuscar.disabled = false;
+        btnBuscar.textContent = 'Buscar Enlace';
+
       }
-    } catch (err) {
-      resultadoDiv.innerHTML = '<p class="error">Error de conexión con el servidor.</p>';
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.innerText = 'Obtener Enlace';
-    }
-  });
-</script>
+
+    });
+
+  </script>
 
 </body>
 </html>
