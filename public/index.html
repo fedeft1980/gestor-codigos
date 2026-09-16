@@ -21,6 +21,19 @@
       align-items: center;
       min-height: 100vh;
       padding: 20px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    #matrixFondo {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      display: block;
+      background-color: #0a0a0a;
     }
 
     .card {
@@ -31,6 +44,41 @@
       width: 100%;
       max-width: 420px;
       text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hora-recepcion {
+      color: #aaa;
+      font-size: 0.8rem;
+      margin-top: 8px;
+    }
+
+    .card-vencido {
+      background-color: #2b1a1a;
+      border: 1px solid #5a2a2a;
+    }
+
+    .mensaje-vencido {
+      color: #ff9800;
+      font-weight: bold;
+      font-size: 1.05rem;
+    }
+
+    .btn-reenviar {
+      width: 100%;
+      background-color: #ff9800;
+      color: #000;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+
+    .btn-reenviar:hover {
+      background-color: #e08800;
     }
 
     .logo-container {
@@ -204,6 +252,8 @@
 
 <body>
 
+  <canvas id="matrixFondo"></canvas>
+
   <div class="card">
 
     <div class="logo-container">
@@ -237,6 +287,98 @@
   </div>
 
   <script>
+
+    // ============= FONDO ESTILO MATRIX =============
+    (function () {
+
+      const canvas = document.getElementById('matrixFondo');
+      const ctx = canvas.getContext('2d');
+
+      let ancho, alto, columnas, gotas, colDatos;
+
+      const CARACTERES = 'アカサタナハマヤラワ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const PLATAFORMAS = ['NETFLIX', 'DISNEY+', 'HBOMAX', 'PRIME', 'SPOTIFY', 'YOUTUBE', 'CRUNCHYROLL', 'PARAMOUNT'];
+      const TAM_FUENTE = 22; // columnas más anchas = menos elementos dibujados
+      const FPS_OBJETIVO = 20; // menos cuadros por segundo = animación más liviana
+      const INTERVALO_FRAME = 1000 / FPS_OBJETIVO;
+      const SALTO_COLUMNA = 2; // se usa 1 de cada N columnas, el resto queda vacío (más aire, menos carga)
+      let ultimoFrame = 0;
+
+      function ajustarTamano() {
+        ancho = canvas.width = window.innerWidth;
+        alto = canvas.height = window.innerHeight;
+        columnas = Math.floor(ancho / TAM_FUENTE / SALTO_COLUMNA);
+
+        gotas = new Array(columnas).fill(0).map(() => Math.floor(Math.random() * -50));
+        colDatos = new Array(columnas).fill(null);
+
+        // Elegir algunas columnas para que "formen" el nombre de una plataforma
+        const cantColumnasConNombre = Math.max(1, Math.floor(columnas / 30));
+        for (let i = 0; i < cantColumnasConNombre; i++) {
+          const col = Math.floor(Math.random() * columnas);
+          const palabra = PLATAFORMAS[Math.floor(Math.random() * PLATAFORMAS.length)];
+          colDatos[col] = { palabra, offset: 0 };
+        }
+      }
+
+      function elegirCaracter(col, fila) {
+        const info = colDatos[col];
+        if (info) {
+          const letra = info.palabra[info.offset % info.palabra.length];
+          info.offset++;
+          return letra;
+        }
+        return CARACTERES[Math.floor(Math.random() * CARACTERES.length)];
+      }
+
+      function dibujar(marcaTiempo) {
+
+        requestAnimationFrame(dibujar);
+
+        // Limitar la tasa de refresco para aliviar el uso de CPU/GPU
+        if (marcaTiempo - ultimoFrame < INTERVALO_FRAME) {
+          return;
+        }
+        ultimoFrame = marcaTiempo;
+
+        ctx.fillStyle = 'rgba(10, 10, 10, 0.15)';
+        ctx.fillRect(0, 0, ancho, alto);
+
+        ctx.font = TAM_FUENTE + 'px monospace';
+        ctx.globalAlpha = 0.55; // trazo más tenue, menos "cargado" visualmente
+
+        for (let i = 0; i < columnas; i++) {
+
+          const esColumnaEspecial = !!colDatos[i];
+          ctx.fillStyle = esColumnaEspecial ? '#ff3b3b' : '#00ff41';
+
+          const caracter = elegirCaracter(i, gotas[i]);
+          ctx.fillText(caracter, i * TAM_FUENTE * SALTO_COLUMNA, gotas[i] * TAM_FUENTE);
+
+          if (gotas[i] * TAM_FUENTE > alto && Math.random() > 0.98) {
+            gotas[i] = 0;
+
+            // Con baja probabilidad, reasignar esta columna a un nombre nuevo
+            if (Math.random() > 0.9) {
+              const palabra = PLATAFORMAS[Math.floor(Math.random() * PLATAFORMAS.length)];
+              colDatos[i] = { palabra, offset: 0 };
+            } else {
+              colDatos[i] = null;
+            }
+          }
+
+          gotas[i]++;
+        }
+
+        ctx.globalAlpha = 1;
+      }
+
+      ajustarTamano();
+      window.addEventListener('resize', ajustarTamano);
+      requestAnimationFrame(dibujar);
+
+    })();
+    // ============= FIN FONDO MATRIX =============
 
     const TELEFONO_SOPORTE = "5492657219227";
 
@@ -280,8 +422,26 @@
 
         if (res.ok && data.exito) {
 
+          // Calcular hora de recepción y si el enlace está vencido (más de 13 min)
+          let horaRecepcionTexto = '';
+          let minutosTranscurridos = null;
+
+          if (data.fechaRecepcion) {
+            const fechaRecepcion = new Date(data.fechaRecepcion);
+            horaRecepcionTexto = fechaRecepcion.toLocaleString('es-AR', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              day: '2-digit',
+              month: '2-digit'
+            });
+            minutosTranscurridos = (Date.now() - fechaRecepcion.getTime()) / 60000;
+          }
+
+          const enlaceVencido = minutosTranscurridos !== null && minutosTranscurridos > 13;
+
           let html = `
-            <div class="card-res card-exito">
+            <div class="card-res ${enlaceVencido ? 'card-vencido' : 'card-exito'}">
               <p class="mensaje-exito">
                 ¡Correo Encontrado! (${data.servicio || 'Servicio'})
               </p>
@@ -290,7 +450,37 @@
               </div>
           `;
 
-          if (data.enlace) {
+          if (horaRecepcionTexto) {
+            html += `
+              <div class="hora-recepcion">
+                🕒 Hora de recepción: ${horaRecepcionTexto}
+              </div>
+            `;
+          }
+
+          if (enlaceVencido) {
+
+            const textoReenvio =
+`Hola, el enlace de verificación llegó hace más de 13 minutos y está vencido. Necesito que me reenvíen uno nuevo.
+Correo: ${correoCliente}`;
+
+            html += `
+              <p class="mensaje-vencido" style="margin-top:10px;">
+                ⚠️ Enlace vencido
+              </p>
+              <p style="color:#ccc; font-size:0.85rem; margin-top:4px;">
+                Recibido hace más de 13 minutos. Solicita el reenvío.
+              </p>
+              <button
+                id="btnReenviar"
+                class="btn-reenviar"
+                type="button"
+              >
+                Reenviar
+              </button>
+            `;
+
+          } else if (data.enlace) {
             html += `
               <a
                 href="${data.enlace}"
@@ -311,6 +501,31 @@
           html += `</div>`;
 
           contenedorResultado.innerHTML = html;
+
+          if (enlaceVencido) {
+
+            const textoReenvio =
+`Hola, el enlace de verificación llegó hace más de 13 minutos y está vencido. Necesito que me reenvíen uno nuevo.
+Correo: ${correoCliente}`;
+
+            document
+              .getElementById('btnReenviar')
+              .addEventListener('click', async () => {
+
+                try {
+                  await navigator.clipboard.writeText(textoReenvio);
+                } catch (error) {
+                  console.log('No se pudo copiar automáticamente');
+                }
+
+                const url =
+                  `https://api.whatsapp.com/send?phone=${TELEFONO_SOPORTE}&text=${encodeURIComponent(textoReenvio)}`;
+
+                window.open(url, '_blank');
+
+              });
+
+          }
 
         } else {
 

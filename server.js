@@ -110,7 +110,8 @@ app.post('/api/obtener-codigo', async (req, res) => {
         correo: correoCliente,
         asunto: asuntoEncontrado,
         codigo: codigoMatch ? codigoMatch[0] : null,
-        enlace: enlaceHogar || null
+        enlace: enlaceHogar || null,
+        fechaRecepcion: correoValido.date ? correoValido.date.toISOString() : null
       });
 
     } finally {
