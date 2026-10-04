@@ -73,13 +73,16 @@ app.post('/api/obtener-codigo', async (req, res) => {
         const asuntoLower = asunto.toLowerCase();
         const cuerpoTexto = (parsed.text || parsed.html || '').toLowerCase();
 
-        // 1. Filtros Netflix
+        // 1. Filtros Netflix (Incorpóralas variantes de cambio/actualización de hogar)
         const esNetflix = remitente.includes('netflix.com');
         const esAccesoNetflix = asuntoLower.includes('obten tu cod') || 
                                 asuntoLower.includes('obtén tu cod') || 
                                 asuntoLower.includes('código de acceso temporal') || 
                                 asuntoLower.includes('codigo de acceso temporal');
-        const esHogarNetflix = asuntoLower.includes('actualizar tu hogar');
+        const esHogarNetflix = asuntoLower.includes('actualizar tu hogar') || 
+                               asuntoLower.includes('cómo cambiar tu hogar') || 
+                               asuntoLower.includes('como cambiar tu hogar') || 
+                               asuntoLower.includes('cambiar tu hogar');
 
         // 2. Filtros Max / HBO Max
         const esMaxRemitente = remitente.includes('max.com') || remitente.includes('hbomax.com');
@@ -94,9 +97,9 @@ app.post('/api/obtener-codigo', async (req, res) => {
 
         // 3. Filtros Disney+ / Star+
         const esDisneyRemitente = remitente.includes('disneyplus.com') || 
-                                 remitente.includes('disney.com') || 
-                                 remitente.includes('starplus.com') ||
-                                 remitente.includes('dssott.com');
+                                  remitente.includes('disney.com') || 
+                                  remitente.includes('starplus.com') ||
+                                  remitente.includes('dssott.com');
         const esDisneyCodigo = asuntoLower.includes('código') || 
                                asuntoLower.includes('codigo') || 
                                asuntoLower.includes('passcode') || 
@@ -149,7 +152,8 @@ app.post('/api/obtener-codigo', async (req, res) => {
       }
 
       // --- EXTRACCIÓN DE CÓDIGO Y ENLACE ---
-      const esHogarCorreo = asuntoEncontrado.toLowerCase().includes('actualizar tu hogar');
+      const asuntoMin = asuntoEncontrado.toLowerCase();
+      const esHogarCorreo = asuntoMin.includes('actualizar tu hogar') || asuntoMin.includes('cambiar tu hogar');
 
       let codigoMatch = null;
       if (!esHogarCorreo) {
