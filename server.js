@@ -44,7 +44,6 @@ app.post('/api/obtener-codigo', async (req, res) => {
     const lock = await client.getMailboxLock('INBOX');
 
     try {
-      // Buscar correos dirigidos a la cuenta especificada
       const messages = await client.search({
         header: { 'to': correoCliente }
       });
@@ -73,15 +72,16 @@ app.post('/api/obtener-codigo', async (req, res) => {
         const asuntoLower = asunto.toLowerCase();
         const cuerpoTexto = (parsed.text || parsed.html || '').toLowerCase();
 
-        // 1. Filtros Netflix (Incorpóralas variantes de cambio/actualización de hogar)
+        // 1. Filtros Netflix (Soporta código de acceso y variantes completas de actualización/cambio de hogar)
         const esNetflix = remitente.includes('netflix.com');
         const esAccesoNetflix = asuntoLower.includes('obten tu cod') || 
                                 asuntoLower.includes('obtén tu cod') || 
                                 asuntoLower.includes('código de acceso temporal') || 
                                 asuntoLower.includes('codigo de acceso temporal');
+        
         const esHogarNetflix = asuntoLower.includes('actualizar tu hogar') || 
                                asuntoLower.includes('cómo cambiar tu hogar') || 
-                               asuntoLower.includes('como cambiar tu hogar') || 
+                               asuntoLower.includes('como cambiar tu hogar') ||
                                asuntoLower.includes('cambiar tu hogar');
 
         // 2. Filtros Max / HBO Max
@@ -153,7 +153,10 @@ app.post('/api/obtener-codigo', async (req, res) => {
 
       // --- EXTRACCIÓN DE CÓDIGO Y ENLACE ---
       const asuntoMin = asuntoEncontrado.toLowerCase();
-      const esHogarCorreo = asuntoMin.includes('actualizar tu hogar') || asuntoMin.includes('cambiar tu hogar');
+      const esHogarCorreo = asuntoMin.includes('actualizar tu hogar') || 
+                            asuntoMin.includes('cómo cambiar tu hogar') || 
+                            asuntoMin.includes('como cambiar tu hogar') ||
+                            asuntoMin.includes('cambiar tu hogar');
 
       let codigoMatch = null;
       if (!esHogarCorreo) {
