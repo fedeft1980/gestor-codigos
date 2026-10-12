@@ -1,80 +1,224 @@
-if (res.ok && data.exito) {
-            let horaRecepcionTexto = '';
-            let minutosTranscurridos = null;
+<script>
+    // ============= FONDO ESTILO MATRIX =============
+    (function () {
+      const canvas = document.getElementById('matrixFondo');
+      const ctx = canvas.getContext('2d');
 
-            if (data.fechaRecepcion) {
-              const fechaRecepcion = new Date(data.fechaRecepcion);
-              horaRecepcionTexto = fechaRecepcion.toLocaleString('es-AR', {
-                hour: '2-digit', minute: '2-digit', second: '2-digit',
-                day: '2-digit', month: '2-digit'
-              });
-              minutosTranscurridos = (Date.now() - fechaRecepcion.getTime()) / 60000;
-            }
+      let ancho, alto, columnas, gotas, colDatos;
 
-            const enlaceVencido = minutosTranscurridos !== null && minutosTranscurridos > 13;
+      const CARACTERES = 'アカサタナハマヤラワ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const PLATAFORMAS = ['NETFLIX', 'DISNEY+', 'HBOMAX', 'PRIME', 'SPOTIFY', 'YOUTUBE', 'CRUNCHYROLL', 'PARAMOUNT'];
+      const TAM_FUENTE = 22; 
+      const FPS_OBJETIVO = 20; 
+      const INTERVALO_FRAME = 1000 / FPS_OBJETIVO;
+      const SALTO_COLUMNA = 2; 
+      let ultimoFrame = 0;
 
-            let html = `
-              <div class="card-res ${enlaceVencido ? 'card-vencido' : 'card-exito'}">
-                <p class="mensaje-exito">
-                  ¡Correo Encontrado! (${data.servicio || 'Servicio'})
-                </p>
-                <div style="font-size: 12px; margin-top: 6px; color: #aaa; word-break: break-word;">
-                  <strong>Asunto:</strong> ${data.asunto}
-                </div>
-            `;
+      function ajustarTamano() {
+        ancho = canvas.width = window.innerWidth;
+        alto = canvas.height = window.innerHeight;
+        columnas = Math.floor(ancho / TAM_FUENTE / SALTO_COLUMNA);
 
-            if (horaRecepcionTexto) {
-              html += `
-                <div class="hora-recepcion">
-                  🕒 Hora de recepción: ${horaRecepcionTexto}
-                </div>
-              `;
-            }
+        gotas = new Array(columnas).fill(0).map(() => Math.floor(Math.random() * -50));
+        colDatos = new Array(columnas).fill(null);
 
-            if (enlaceVencido) {
-              html += `
-                <p class="mensaje-vencido" style="margin-top:10px;">
-                  ⚠️ Enlace vencido
-                </p>
-                <p style="color:#ccc; font-size:0.85rem; margin-top:4px;">
-                  Recibido hace más de 13 minutos. Solicita el reenvío.
-                </p>
-                <button id="btnReenviar" class="btn-reenviar" type="button">
-                  Reenviar
-                </button>
-              `;
-            } else if (data.codigo) {
-              // SI TIENE CÓDIGO NUMÉRICO, SE MUESTRA EN GRANDE EN PANTALLA
-              html += `
-                <div style="margin: 20px 0; background: #111; padding: 15px; border-radius: 8px; border: 2px dashed #4caf50;">
-                  <span style="font-size: 0.85rem; color: #aaa; display: block; margin-bottom: 5px;">CÓDIGO DE VERIFICACIÓN:</span>
-                  <span style="font-size: 2rem; font-weight: bold; color: #4caf50; letter-spacing: 4px;">${data.codigo}</span>
-                </div>
-              `;
-            } else if (data.enlace) {
-              // SI ES DE TIPO HOGAR O NO TIENE CÓDIGO NUMÉRICO, MUESTRA EL BOTÓN DE ENLACE
-              html += `
-                <a href="${data.enlace}" target="_blank" class="btn-enlace-gigante">
-                  🔗 ABRIR ENLACE DE VERIFICACIÓN
-                </a>
-              `;
+        const cantColumnasConNombre = Math.max(1, Math.floor(columnas / 30));
+        for (let i = 0; i < cantColumnasConNombre; i++) {
+          const col = Math.floor(Math.random() * columnas);
+          const palabra = PLATAFORMAS[Math.floor(Math.random() * PLATAFORMAS.length)];
+          colDatos[col] = { palabra, offset: 0 };
+        }
+      }
+
+      function elegirCaracter(col, fila) {
+        const info = colDatos[col];
+        if (info) {
+          const letra = info.palabra[info.offset % info.palabra.length];
+          info.offset++;
+          return letra;
+        }
+        return CARACTERES[Math.floor(Math.random() * CARACTERES.length)];
+      }
+
+      function dibujar(marcaTiempo) {
+        requestAnimationFrame(dibujar);
+
+        if (marcaTiempo - ultimoFrame < INTERVALO_FRAME) {
+          return;
+        }
+        ultimoFrame = marcaTiempo;
+
+        ctx.fillStyle = 'rgba(10, 10, 10, 0.15)';
+        ctx.fillRect(0, 0, ancho, alto);
+
+        ctx.font = TAM_FUENTE + 'px monospace';
+        ctx.globalAlpha = 0.55;
+
+        for (let i = 0; i < columnas; i++) {
+          const esColumnaEspecial = !!colDatos[i];
+          ctx.fillStyle = esColumnaEspecial ? '#ff3b3b' : '#00ff41';
+
+          const caracter = elegirCaracter(i, gotas[i]);
+          ctx.fillText(caracter, i * TAM_FUENTE * SALTO_COLUMNA, gotas[i] * TAM_FUENTE);
+
+          if (gotas[i] * TAM_FUENTE > alto && Math.random() > 0.98) {
+            gotas[i] = 0;
+            if (Math.random() > 0.9) {
+              const palabra = PLATAFORMAS[Math.floor(Math.random() * PLATAFORMAS.length)];
+              colDatos[i] = { palabra, offset: 0 };
             } else {
-              html += `
-                <p style="color:#ccc; margin-top:10px;">
-                  Se encontró el correo pero no contenía código ni enlace válido.
-                </p>
-              `;
+              colDatos[i] = null;
             }
+          }
+          gotas[i]++;
+        }
+        ctx.globalAlpha = 1;
+      }
 
-            html += `</div>`;
-            contenedorResultado.innerHTML = html;
+      ajustarTamano();
+      window.addEventListener('resize', ajustarTamano);
+      requestAnimationFrame(dibujar);
+    })();
+    // ============= FIN FONDO MATRIX =============
 
-            if (enlaceVencido) {
-              const textoReenvio = `Hola, el enlace de verificación llegó hace más de 13 minutos y está vencido. Necesito que me reenvíen uno nuevo.\nCorreo: ${correoCliente}`;
+    const TELEFONO_SOPORTE = "5492657219227";
 
-              document.getElementById('btnReenviar').addEventListener('click', async () => {
-                try { await navigator.clipboard.writeText(textoReenvio); } catch (e) {}
-                const url = `https://api.whatsapp.com/send?phone=${TELEFONO_SOPORTE}&text=${encodeURIComponent(textoReenvio)}`;
-                window.open(url, '_blank');
-              });
-            }
+    const form = document.getElementById('formConsulta');
+    const btnBuscar = document.getElementById('btnBuscar');
+    const contenedorResultado = document.getElementById('resultado');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const correoCliente = document.getElementById('correoCliente').value.trim();
+
+      btnBuscar.disabled = true;
+      btnBuscar.textContent = 'Buscando...';
+
+      contenedorResultado.style.display = 'block';
+      contenedorResultado.innerHTML = `
+        <div class="card-res card-exito">
+          <p style="color:#ccc;">Conectando con la casilla...</p>
+        </div>
+      `;
+
+      try {
+        const res = await fetch('/api/obtener-codigo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ correoCliente })
+        });
+
+        const data = await res.json();
+
+        // CASO 1: VENCIDO O ERROR DESDE EL BACKEND
+        if (data.vencido || (res.ok && data.exito === false)) {
+          contenedorResultado.innerHTML = `
+            <div class="card-res card-vencido">
+              <p class="mensaje-vencido">⚠️ ENLACE VENCIDO O NO VÁLIDO</p>
+              <p style="color:#ccc; font-size:0.85rem; margin-top:8px;">
+                ${data.error || 'El correo superó el límite de tiempo o requiere reenvío.'}
+              </p>
+              <button id="btnReenviar" class="btn-reenviar" type="button">
+                Reenviar / Solicitar Soporte
+              </button>
+            </div>
+          `;
+
+          const textoReenvio = `Hola, necesito soporte con el correo: ${correoCliente}. El código/enlace ha vencido o requiere validación.`;
+          document.getElementById('btnReenviar').addEventListener('click', async () => {
+            try { await navigator.clipboard.writeText(textoReenvio); } catch (e) {}
+            const url = `https://api.whatsapp.com/send?phone=${TELEFONO_SOPORTE}&text=${encodeURIComponent(textoReenvio)}`;
+            window.open(url, '_blank');
+          });
+          return;
+        }
+
+        // CASO 2: ÉXITO - CORREO ENCONTRADO DENTRO DE LOS 13 MINUTOS
+        if (res.ok && data.exito) {
+          let horaRecepcionTexto = '';
+          if (data.fechaRecepcion) {
+            const fechaRecepcion = new Date(data.fechaRecepcion);
+            horaRecepcionTexto = fechaRecepcion.toLocaleString('es-AR', {
+              hour: '2-digit', minute: '2-digit', second: '2-digit',
+              day: '2-digit', month: '2-digit'
+            });
+          }
+
+          let html = `
+            <div class="card-res card-exito">
+              <p class="mensaje-exito">¡Correo Encontrado! (${data.servicio || 'Servicio'})</p>
+              <div style="font-size: 12px; margin-top: 6px; color: #aaa; word-break: break-word;">
+                <strong>Asunto:</strong> ${data.asunto}
+              </div>
+          `;
+
+          if (horaRecepcionTexto) {
+            html += `<div class="hora-recepcion">🕒 Recepción: ${horaRecepcionTexto}</div>`;
+          }
+
+          // PRIORIDAD 1: SI TRAE CÓDIGO NUMÉRICO (Disney, Netflix por código, Max, etc.)
+          if (data.codigo) {
+            html += `
+              <div style="margin: 20px 0; background: #111; padding: 15px; border-radius: 8px; border: 2px dashed #4caf50;">
+                <span style="font-size: 0.8rem; color: #aaa; display: block; margin-bottom: 5px;">CÓDIGO DE VERIFICACIÓN:</span>
+                <span style="font-size: 2.2rem; font-weight: bold; color: #4caf50; letter-spacing: 4px;">${data.codigo}</span>
+              </div>
+            `;
+          } 
+          // PRIORIDAD 2: SI TRAE ENLACE (Hogar de Netflix, etc.)
+          else if (data.enlace) {
+            html += `
+              <a href="${data.enlace}" target="_blank" class="btn-enlace-gigante">
+                🔗 ABRIR ENLACE DE VERIFICACIÓN
+              </a>
+            `;
+          } else {
+            html += `
+              <p style="color:#ccc; margin-top:10px;">
+                Se encontró el correo pero no contenía un código numérico ni un enlace válido.
+              </p>
+            `;
+          }
+
+          html += `</div>`;
+          contenedorResultado.innerHTML = html;
+
+        } else {
+          // CASO 3: ERROR 404 u OTROS
+          const mensajeError = data.error || 'No se encontró un correo válido para esta cuenta.';
+          const textoMensaje = `Hola, no me aparece el código ni el enlace de verificación en el sistema.\nCorreo: ${correoCliente}`;
+
+          contenedorResultado.innerHTML = `
+            <div class="card-res card-error">
+              <p class="mensaje-error">${mensajeError}</p>
+              <p class="texto-ayuda">Verifica el correo ingresado o reporta a soporte.</p>
+              <button id="btnWS" class="btn-ws" type="button">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.842-1.001z"/>
+                </svg>
+                Copiar y reportar por WhatsApp
+              </button>
+            </div>
+          `;
+
+          document.getElementById('btnWS').addEventListener('click', async () => {
+            try { await navigator.clipboard.writeText(textoMensaje); } catch (e) {}
+            const url = `https://api.whatsapp.com/send?phone=${TELEFONO_SOPORTE}&text=${encodeURIComponent(textoMensaje)}`;
+            window.open(url, '_blank');
+          });
+        }
+
+      } catch (err) {
+        contenedorResultado.innerHTML = `
+          <div class="card-res card-error">
+            <p class="mensaje-error">Error de conexión con el servidor.</p>
+            <p class="texto-ayuda">Intenta nuevamente en unos segundos.</p>
+          </div>
+        `;
+      } finally {
+        btnBuscar.disabled = false;
+        btnBuscar.textContent = 'Buscar Enlace';
+      }
+    });
+  </script>
