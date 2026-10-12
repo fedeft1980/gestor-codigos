@@ -52,7 +52,6 @@ app.post('/api/obtener-codigo', async (req, res) => {
         return res.status(404).json({ exito: false, error: 'No se encontraron correos para esta cuenta.' });
       }
 
-      // Analizar los últimos 15 correos recibidos
       const ultimosMensajes = messages.reverse().slice(0, 15);
 
       let correoValido = null;
@@ -72,42 +71,16 @@ app.post('/api/obtener-codigo', async (req, res) => {
         const asuntoLower = asunto.toLowerCase();
         const cuerpoTexto = (parsed.text || parsed.html || '').toLowerCase();
 
-        // 1. Filtros Netflix (Soporta códigos y variantes de cambio/actualización de hogar)
+        // Filtros por servicio
         const esNetflix = remitente.includes('netflix.com');
-        const esAccesoNetflix = asuntoLower.includes('obten tu cod') || 
-                                asuntoLower.includes('obtén tu cod') || 
-                                asuntoLower.includes('código de acceso temporal') || 
-                                asuntoLower.includes('codigo de acceso temporal');
-        
-        const esHogarNetflix = asuntoLower.includes('actualizar tu hogar') || 
-                               asuntoLower.includes('cómo cambiar tu hogar') || 
-                               asuntoLower.includes('como cambiar tu hogar') ||
-                               asuntoLower.includes('cambiar tu hogar');
+        const esAccesoNetflix = asuntoLower.includes('obten tu cod') || asuntoLower.includes('obtén tu cod') || asuntoLower.includes('código de acceso temporal') || asuntoLower.includes('codigo de acceso temporal');
+        const esHogarNetflix = asuntoLower.includes('actualizar tu hogar') || asuntoLower.includes('cómo cambiar tu hogar') || asuntoLower.includes('como cambiar tu hogar') || asuntoLower.includes('cambiar tu hogar');
 
-        // 2. Filtros Max / HBO Max
         const esMaxRemitente = remitente.includes('max.com') || remitente.includes('hbomax.com');
-        const esMaxCodigo = asuntoLower.includes('código') || 
-                            asuntoLower.includes('codigo') || 
-                            asuntoLower.includes('restablecer') || 
-                            asuntoLower.includes('pin') || 
-                            asuntoLower.includes('iniciar sesión') || 
-                            asuntoLower.includes('iniciar sesion') ||
-                            asuntoLower.includes('tu código de') ||
-                            asuntoLower.includes('verific');
+        const esMaxCodigo = asuntoLower.includes('código') || asuntoLower.includes('codigo') || asuntoLower.includes('restablecer') || asuntoLower.includes('pin') || asuntoLower.includes('iniciar sesión') || asuntoLower.includes('verific');
 
-        // 3. Filtros Disney+ / Star+
-        const esDisneyRemitente = remitente.includes('disneyplus.com') || 
-                                  remitente.includes('disney.com') || 
-                                  remitente.includes('starplus.com') ||
-                                  remitente.includes('dssott.com');
-        const esDisneyCodigo = asuntoLower.includes('código') || 
-                               asuntoLower.includes('codigo') || 
-                               asuntoLower.includes('passcode') || 
-                               asuntoLower.includes('one-time') || 
-                               asuntoLower.includes('verific') ||
-                               asuntoLower.includes('iniciar sesión') ||
-                               asuntoLower.includes('tu código de acceso') ||
-                               cuerpoTexto.includes('disney');
+        const esDisneyRemitente = remitente.includes('disneyplus.com') || remitente.includes('disney.com') || remitente.includes('starplus.com') || remitente.includes('dssott.com');
+        const esDisneyCodigo = asuntoLower.includes('código') || asuntoLower.includes('codigo') || asuntoLower.includes('passcode') || asuntoLower.includes('one-time') || asuntoLower.includes('verific') || cuerpoTexto.includes('disney');
 
         if (esNetflix && (esAccesoNetflix || esHogarNetflix)) {
           correoValido = parsed;
@@ -115,13 +88,13 @@ app.post('/api/obtener-codigo', async (req, res) => {
           contenido = parsed.text || parsed.html || '';
           servicioDetectado = 'Netflix';
           break;
-        } else if (esMaxRemitente || (esMaxCodigo && cuerpoTexto.includes('max'))) {
+        } else if (esMaxRemitente || (esMaxCodigo && (cuerpoTexto.includes('max') || cuerpoTexto.includes('hbo')))) {
           correoValido = parsed;
           asuntoEncontrado = asunto;
           contenido = parsed.text || parsed.html || '';
           servicioDetectado = 'Max';
           break;
-        } else if (esDisneyRemitente || (esDisneyCodigo && (cuerpoTexto.includes('disney') || cuerpoTexto.includes('star+')))) {
+        } else if (esDisneyRemitente || (esDisneyCodigo && (cuerpoTexto.includes('disney') || cuerpoTexto.includes('star+') || cuerpoTexto.includes('my.disney.com')))) {
           correoValido = parsed;
           asuntoEncontrado = asunto;
           contenido = parsed.text || parsed.html || '';
@@ -153,17 +126,14 @@ app.post('/api/obtener-codigo', async (req, res) => {
 
       // --- EXTRACCIÓN DE CÓDIGO Y ENLACE ---
       const asuntoMin = asuntoEncontrado.toLowerCase();
-      const esHogarCorreo = asuntoMin.includes('actualizar tu hogar') || 
-                            asuntoMin.includes('cómo cambiar tu hogar') || 
-                            asuntoMin.includes('como cambiar tu hogar') ||
-                            asuntoMin.includes('cambiar tu hogar');
+      const esHogarCorreo = asuntoMin.includes('actualizar tu hogar') || asuntoMin.includes('cómo cambiar tu hogar') || asuntoMin.includes('como cambiar tu hogar') || asuntoMin.includes('cambiar tu hogar');
 
       let codigoMatch = null;
       if (!esHogarCorreo) {
+        // Busca cualquier secuencia de 4 a 6 dígitos en el cuerpo del correo o texto plano
         codigoMatch = contenido.match(/\b\d{4,6}\b/);
       }
 
-      // Limpieza robusta de URLs
       const urlsMatch = contenido.match(/https?:\/\/[^\s"'<>;\]]+/g) || [];
       const urls = urlsMatch.map(url => {
         const indexHttp = url.indexOf('https://');
@@ -185,7 +155,7 @@ app.post('/api/obtener-codigo', async (req, res) => {
       );
 
       return res.json({
-        exito: true,https://github.com/fedeft1980/gestor-codigos/blob/main/server.js
+        exito: true,
         vencido: false,
         servicio: servicioDetectado,
         correo: correoCliente,
