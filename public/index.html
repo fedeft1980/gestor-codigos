@@ -295,7 +295,6 @@
       margin-top: 8px;
     }
 
-    /* Cuadro de Advertencia Especial al Fallar */
     .card-advertencia {
       margin-top: 15px;
       padding: 12px;
@@ -554,15 +553,8 @@
               </button>
             `;
 
-          } else if (data.codigo) {
-            // MOSTRAR CÓDIGO NUMÉRICO EN GRANDE SI EXISTE
-            html += `
-              <div style="margin: 18px 0; background: #111; padding: 15px; border-radius: 8px; border: 2px dashed #4caf50;">
-                <span style="font-size: 0.8rem; color: #aaa; display: block; margin-bottom: 5px;">CÓDIGO DE VERIFICACIÓN:</span>
-                <span style="font-size: 2.2rem; font-weight: bold; color: #4caf50; letter-spacing: 4px;">${data.codigo}</span>
-              </div>
-            `;
           } else if (data.enlace) {
+            // MOSTRAR DIRECTAMENTE EL BOTÓN GIGANTE PARA ABRIR EL ENLACE
             html += `
               <a
                 href="${data.enlace}"
@@ -575,7 +567,7 @@
           } else {
             html += `
               <p style="color:#ccc; margin-top:10px;">
-                Se encontró el correo pero no contenía un código ni enlace válido.
+                Se encontró el correo pero no contenía un enlace de verificación válido.
               </p>
             `;
           }
