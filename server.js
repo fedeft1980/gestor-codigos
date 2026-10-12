@@ -1,185 +1,147 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import { ImapFlow } from 'imapflow';
-import { simpleParser } from 'mailparser';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-dotenv.config();
+const express = require('express');
+const { ImapFlow } = require('imapflow');
+const { simpleParser } = require('mailparser');
+const path = require('path');
+require('dotenv').config();
 
 const app = express();
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// Configuración de conexión IMAP (ej. Gmail con contraseña de aplicación)
+const client = new ImapFlow({
+  host: process.env.IMAP_HOST || 'imap.gmail.com',
+  port: parseInt(process.env.IMAP_PORT || '993'),
+  secure: true,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  },
+  logger: false
 });
+
+// Función auxiliar para extraer enlaces
+function extraerEnlaceDelCuerpo(texto) {
+  if (!texto) return null;
+  const urlRegex = /(https?:\/\/[^\s"<]+)/g;
+  const urls = texto.match(urlRegex);
+  if (!urls || urls.length === 0) return null;
+
+  // Filtrar enlaces de tracking o basura común si es necesario
+  for (let url of urls) {
+    if (!url.includes('google.com') && !url.includes('schema.org') && !url.includes('facebook')) {
+      return url.replace(/["'>]/g, '');
+    }
+  }
+  return urls[0].replace(/["'>]/g, '');
+}
 
 app.post('/api/obtener-codigo', async (req, res) => {
   const { correoCliente } = req.body;
 
   if (!correoCliente) {
-    return res.status(400).json({ exito: false, error: 'Falta ingresar el correo del cliente.' });
+    return res.status(400).json({ exito: false, error: 'Debe ingresar un correo electrónico.' });
   }
-
-  const gmailUser = (process.env.GMAIL_USER || '').trim();
-  const gmailPass = (process.env.GMAIL_APP_PASS || '').replace(/\s+/g, '').trim();
-
-  const client = new ImapFlow({
-    host: 'imap.gmail.com',
-    port: 993,
-    secure: true,
-    auth: { user: gmailUser, pass: gmailPass },
-    tls: { rejectUnauthorized: false },
-    logger: false
-  });
 
   try {
     await client.connect();
-    const lock = await client.getMailboxLock('INBOX');
+    let lock = await client.getMailboxLock('INBOX');
 
     try {
-      const messages = await client.search({
-        header: { 'to': correoCliente }
-      });
-
-      if (!messages || messages.length === 0) {
-        return res.status(404).json({ exito: false, error: 'No se encontraron correos para esta cuenta.' });
-      }
-
-      const ultimosMensajes = messages.reverse().slice(0, 15);
+      // Buscar correos dirigidos al cliente
+      const query = { to: correoCliente.trim() };
+      const messages = client.fetch(query, { envelope: true, source: true }, { reverse: true, limit: 5 });
 
       let correoValido = null;
-      let contenido = '';
       let asuntoEncontrado = '';
-      let servicioDetectado = '';
+      let fechaCorreo = null;
+      let contenido = '';
 
-      for (const msgSeq of ultimosMensajes) {
-        const message = await client.fetchOne(msgSeq, { source: true });
-        const parsed = await simpleParser(message.source);
-        
-        const remitente = (parsed.from && parsed.from.value[0] && parsed.from.value[0].address) 
-          ? parsed.from.value[0].address.toLowerCase() 
-          : '';
-
-        const asunto = (parsed.subject || '').trim();
+      for await (let msg of messages) {
+        const parsed = await simpleParser(msg.source);
+        const asunto = parsed.subject || '';
         const asuntoLower = asunto.toLowerCase();
-        const cuerpoTexto = (parsed.text || parsed.html || '').toLowerCase();
 
-        // Filtros por servicio
-        const esNetflix = remitente.includes('netflix.com');
-        const esAccesoNetflix = asuntoLower.includes('obten tu cod') || asuntoLower.includes('obtén tu cod') || asuntoLower.includes('código de acceso temporal') || asuntoLower.includes('codigo de acceso temporal');
-        const esHogarNetflix = asuntoLower.includes('actualizar tu hogar') || asuntoLower.includes('cómo cambiar tu hogar') || asuntoLower.includes('como cambiar tu hogar') || asuntoLower.includes('cambiar tu hogar');
+        // Validar si es un correo de acceso/código o de hogar de Netflix
+        const esAccesoCodigo = asuntoLower.includes('obten tu cod') || 
+                              asuntoLower.includes('obtén tu cod') || 
+                              asuntoLower.includes('código de acceso temporal') || 
+                              asuntoLower.includes('codigo de acceso temporal');
 
-        const esMaxRemitente = remitente.includes('max.com') || remitente.includes('hbomax.com');
-        const esMaxCodigo = asuntoLower.includes('código') || asuntoLower.includes('codigo') || asuntoLower.includes('restablecer') || asuntoLower.includes('pin') || asuntoLower.includes('iniciar sesión') || asuntoLower.includes('verific');
+        const esHogar = asuntoLower.includes('actualizar tu hogar') ||
+                        asuntoLower.includes('cómo cambiar tu hogar') ||
+                        asuntoLower.includes('como cambiar tu hogar');
 
-        const esDisneyRemitente = remitente.includes('disneyplus.com') || remitente.includes('disney.com') || remitente.includes('starplus.com') || remitente.includes('dssott.com');
-        const esDisneyCodigo = asuntoLower.includes('código') || asuntoLower.includes('codigo') || asuntoLower.includes('passcode') || asuntoLower.includes('one-time') || asuntoLower.includes('verific') || cuerpoTexto.includes('disney');
-
-        if (esNetflix && (esAccesoNetflix || esHogarNetflix)) {
+        if (esAccesoCodigo || esHogar) {
           correoValido = parsed;
           asuntoEncontrado = asunto;
+          fechaCorreo = msg.envelope.date || parsed.date;
           contenido = parsed.text || parsed.html || '';
-          servicioDetectado = 'Netflix';
-          break;
-        } else if (esMaxRemitente || (esMaxCodigo && (cuerpoTexto.includes('max') || cuerpoTexto.includes('hbo')))) {
-          correoValido = parsed;
-          asuntoEncontrado = asunto;
-          contenido = parsed.text || parsed.html || '';
-          servicioDetectado = 'Max';
-          break;
-        } else if (esDisneyRemitente || (esDisneyCodigo && (cuerpoTexto.includes('disney') || cuerpoTexto.includes('star+') || cuerpoTexto.includes('my.disney.com')))) {
-          correoValido = parsed;
-          asuntoEncontrado = asunto;
-          contenido = parsed.text || parsed.html || '';
-          servicioDetectado = 'Disney+';
-          break;
+          break; // Tomar el más reciente que coincida
         }
       }
 
-      if (!correoValido) {
-        return res.status(404).json({ exito: false, error: 'No se encontró un correo reciente de Netflix, Max o Disney+ para esta cuenta.' });
+      if (!correoValido || !fechaCorreo) {
+        lock.release();
+        await client.logout();
+        return res.status(404).json({ exito: false, error: 'No se encontraron correos recientes de verificación o hogar para este cliente.' });
       }
 
-      // --- VALIDACIÓN DE VENCIMIENTO (13 MINUTOS) ---
-      const fechaCorreo = correoValido.date ? new Date(correoValido.date) : new Date();
-      const horaFormateada = !isNaN(fechaCorreo.getTime()) 
-        ? fechaCorreo.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) 
-        : 'Desconocida';
+      // Cálculo de tiempo transcurrido (Regla de los 13 minutos)
+      const ahora = Date.now();
+      const timestampCorreo = new Date(fechaCorreo).getTime();
+      const diferenciaMinutos = (ahora - timestampCorreo) / (1000 * 60);
 
-      const diferenciaMinutos = (Date.now() - fechaCorreo.getTime()) / (1000 * 60);
+      // Formatear hora de recepción para mostrar si está vencido
+      const fechaObj = new Date(timestampCorreo);
+      const horaFormateada = !isNaN(fechaObj.getTime()) ? fechaObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : 'Desconocida';
 
       if (isNaN(diferenciaMinutos) || diferenciaMinutos > 13) {
+        lock.release();
+        await client.logout();
         return res.json({
           exito: false,
           vencido: true,
           hora: horaFormateada,
-          error: 'ENLACE VENCIDO: PEDIR FOTO AL CLIENTE COMO QUE ENVIO Y CORROBORAR EL CORREO DE LA PANTALLA'
+          error: 'ENLACE VENCIDO: PEDIR FOTO AL CLIENTE COMO QUE ENVIO Y CORROBORAR EL CORREO DE LA PANTALLA CON LA CONSULTA'
         });
       }
 
-      // --- EXTRACCIÓN DE CÓDIGO Y ENLACE ---
-      const asuntoMin = asuntoEncontrado.toLowerCase();
-      const esHogarCorreo = asuntoMin.includes('actualizar tu hogar') || asuntoMin.includes('cómo cambiar tu hogar') || asuntoMin.includes('como cambiar tu hogar') || asuntoMin.includes('cambiar tu hogar');
+      // Extracción del enlace
+      const enlaceValido = extraerEnlaceDelCuerpo(contenido);
 
-      let codigoMatch = null;
-      if (!esHogarCorreo) {
-        // Busca cualquier secuencia de 4 a 6 dígitos en el cuerpo del correo o texto plano
-        codigoMatch = contenido.match(/\b\d{4,6}\b/);
+      if (!enlaceValido) {
+        lock.release();
+        await client.logout();
+        return res.status(404).json({ exito: false, error: 'No se encontró un enlace válido en el correo.' });
       }
 
-      const urlsMatch = contenido.match(/https?:\/\/[^\s"'<>;\]]+/g) || [];
-      const urls = urlsMatch.map(url => {
-        const indexHttp = url.indexOf('https://');
-        return indexHttp !== -1 ? url.substring(indexHttp) : url;
-      });
-
-      const enlaceValido = urls.find(url => 
-        url.includes('update') || 
-        url.includes('household') || 
-        url.includes('travel') || 
-        url.includes('verify') ||
-        url.includes('nftx.me') ||
-        url.includes('code') ||
-        url.includes('max.com') ||
-        url.includes('hbomax.com') ||
-        url.includes('disneyplus.com') ||
-        url.includes('disney.com') ||
-        url.includes('dssott.com')
-      );
+      lock.release();
+      await client.logout();
 
       return res.json({
         exito: true,
         vencido: false,
-        servicio: servicioDetectado,
-        correo: correoCliente,
-        asunto: asuntoEncontrado,
-        codigo: codigoMatch ? codigoMatch[0] : null,
-        enlace: enlaceValido || null,
-        hora: horaFormateada,
-        fechaRecepcion: fechaCorreo.toISOString()
+        enlace: enlaceValido,
+        hora: horaFormateada
       });
 
-    } finally {
+    } catch (err) {
       lock.release();
+      throw err;
     }
+
   } catch (error) {
-    console.error('Error procesando correo:', error);
-    return res.status(500).json({ exito: false, error: 'Error de autenticación o conexión con Gmail.' });
-  } finally {
+    console.error('Error en el servidor:', error);
     if (client.usable) {
       await client.logout();
     }
+    return res.status(500).json({ exito: false, error: 'Error al consultar la bandeja de entrada.' });
   }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor activo en http://localhost:${PORT}`);
+  console.log(`Servidor activo en http://localhost:${PORT}`);
 });
