@@ -6,10 +6,11 @@
   <title>FT_STORE - Gestor de Enlaces</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
-    body { background-color: #121212; color: #ffffff; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
-    .card { background-color: #1e1e1e; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); width: 100%; max-width: 440px; text-align: center; }
+    body { background-color: #121212; color: #ffffff; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; position: relative; overflow-x: hidden; }
+    #matrixFondo { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; display: block; background-color: #0a0a0a; }
+    .card { background-color: #1e1e1e; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); width: 100%; max-width: 440px; text-align: center; position: relative; z-index: 1; }
     .logo-container { margin-bottom: 15px; display: flex; justify-content: center; align-items: center; }
-    .logo-img { max-width: 140px; max-height: 80px; width: auto; height: auto; object-fit: contain; }
+    .logo-img { max-width: 140px; max-height: 80px; width: auto; height: auto; object-fit: contain; border-radius: 50%; border: 2px solid #e50914; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
     h1 { font-size: 1.6rem; margin-bottom: 4px; color: #ffffff; font-weight: bold; }
     .sub { color: #e50914; font-size: 0.85rem; font-weight: bold; margin-bottom: 20px; letter-spacing: 0.5px; text-transform: uppercase; }
     .form-group { margin-bottom: 15px; text-align: left; }
@@ -22,18 +23,22 @@
     .result-container { margin-top: 20px; padding: 15px; border-radius: 8px; background-color: #2b2b2b; display: none; word-break: break-word; text-align: center; }
     .result-container.active { display: block; }
     .hora-tag { font-size: 0.9rem; color: #aaa; margin-bottom: 10px; }
-    .link-btn { display: inline-block; margin-top: 12px; padding: 14px 18px; background-color: #25d366; color: #000; text-decoration: none; border-radius: 8px; font-weight: 900; font-size: 1.05rem; text-transform: uppercase; width: 100%; }
-    .warning-box { background-color: #3d0a0a; border: 2px solid #ff4d4d; color: #ff9999; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 0.9rem; margin-top: 10px; line-height: 1.4; text-transform: uppercase; }
+    .link-btn { display: inline-block; margin-top: 12px; padding: 14px 18px; background-color: #25d366; color: #000; text-decoration: none; border-radius: 8px; font-weight: 900; font-size: 1.05rem; text-transform: uppercase; width: 100%; box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3); }
+    .warning-box { background-color: #3d0a0a; border: 2px solid #ff4d4d; color: #ff9999; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 0.85rem; margin-top: 10px; line-height: 1.4; text-transform: uppercase; text-align: left; }
     .error { color: #ff4d4d; font-weight: bold; }
     .success { color: #4dff88; font-weight: bold; margin-bottom: 5px; font-size: 1.1rem; }
     .codigo-display { margin: 15px 0; background: #111; padding: 15px; border-radius: 8px; border: 2px dashed #4caf50; }
+    .btn-ws { width: 100%; background-color: #25d366; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-ws:hover { background-color: #1da851; }
   </style>
 </head>
 <body>
 
+  <canvas id="matrixFondo"></canvas>
+
   <div class="card">
     <div class="logo-container">
-      <img src="logo.jpeg" alt="FT_STORE" class="logo-img">
+      <img src="/logo.jpeg" alt="FT_STORE" class="logo-img">
     </div>
     <h1>FT_STORE</h1>
     <div class="sub">Gestor de Enlaces de Verificación</div>
@@ -43,13 +48,60 @@
         <label for="correo">Correo Electrónico:</label>
         <input type="email" id="correo" placeholder="ejemplo@correo.com" required>
       </div>
-      <button type="submit" id="submitBtn">Obtener Enlace</button>
+      <button type="submit" id="submitBtn">Buscar Enlace</button>
     </form>
 
     <div id="resultado" class="result-container"></div>
   </div>
 
   <script>
+    // ============= FONDO ESTILO MATRIX =============
+    (function () {
+      const canvas = document.getElementById('matrixFondo');
+      const ctx = canvas.getContext('2d');
+      let ancho, alto, columnas, gotas;
+      const CARACTERES = 'アカサタナハマヤラワ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const TAM_FUENTE = 22; 
+      const INTERVALO_FRAME = 1000 / 20;
+      let ultimoFrame = 0;
+
+      function ajustarTamano() {
+        ancho = canvas.width = window.innerWidth;
+        alto = canvas.height = window.innerHeight;
+        columnas = Math.floor(ancho / TAM_FUENTE / 2);
+        gotas = new Array(columnas).fill(0).map(() => Math.floor(Math.random() * -50));
+      }
+
+      function dibujar(marcaTiempo) {
+        requestAnimationFrame(dibujar);
+        if (marcaTiempo - ultimoFrame < INTERVALO_FRAME) return;
+        ultimoFrame = marcaTiempo;
+
+        ctx.fillStyle = 'rgba(10, 10, 10, 0.15)';
+        ctx.fillRect(0, 0, ancho, alto);
+        ctx.font = TAM_FUENTE + 'px monospace';
+        ctx.globalAlpha = 0.55;
+
+        for (let i = 0; i < columnas; i++) {
+          ctx.fillStyle = '#00ff41';
+          const caracter = CARACTERES[Math.floor(Math.random() * CARACTERES.length)];
+          ctx.fillText(caracter, i * TAM_FUENTE * 2, gotas[i] * TAM_FUENTE);
+
+          if (gotas[i] * TAM_FUENTE > alto && Math.random() > 0.98) {
+            gotas[i] = 0;
+          }
+          gotas[i]++;
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      ajustarTamano();
+      window.addEventListener('resize', ajustarTamano);
+      requestAnimationFrame(dibujar);
+    })();
+    // ===============================================
+
+    const TELEFONO_SOPORTE = "5492657219227";
     const form = document.getElementById('codigoForm');
     const correoInput = document.getElementById('correo');
     const submitBtn = document.getElementById('submitBtn');
@@ -57,14 +109,13 @@
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      
       const correo = correoInput.value.trim();
       if (!correo) return;
 
       submitBtn.disabled = true;
       submitBtn.innerText = 'Buscando...';
       resultadoDiv.className = 'result-container active';
-      resultadoDiv.innerHTML = '<p style="color:#ccc;">Consultando correo...</p>';
+      resultadoDiv.innerHTML = '<p style="color:#ccc;">Conectando con la casilla...</p>';
 
       try {
         const response = await fetch('/api/obtener-codigo', {
@@ -75,26 +126,28 @@
 
         const data = await response.json();
 
-        // CASO 1: CORREO VENCIDO O ERROR DE TIEMPO (> 13 MINUTOS)
-        if (data.vencido) {
+        // CASO 1: VENCIDO O SUPERÓ LOS 13 MINUTOS
+        if (data.vencido || (response.ok && data.exito === false && data.vencido)) {
           resultadoDiv.innerHTML = `
-            <p class="hora-tag"><strong>Hora de recepción:</strong> ${data.hora} hs</p>
+            <p class="hora-tag">🕒 Hora de recepción: ${data.hora || 'Desconocida'}</p>
             <div class="warning-box">
               ⚠️ ${data.error}
             </div>
           `;
-        } 
-        // CASO 2: ÉXITO - CORREO VÁLIDO ENCONTRADO
-        else if (response.ok && data.exito) {
+          return;
+        }
+
+        // CASO 2: ÉXITO - CORREO VÁLIDO DENTRO DE LOS 13 MINUTOS
+        if (response.ok && data.exito) {
           let html = `
             <p class="success">¡Correo Encontrado! (${data.servicio || 'Servicio'})</p>
-            <p class="hora-tag"><strong>Hora:</strong> ${data.hora} hs</p>
-            <div style="font-size: 11px; margin-bottom: 10px; color: #aaa;">
+            <div style="font-size: 11px; margin-top: 4px; color: #aaa; word-break: break-word;">
               <strong>Asunto:</strong> ${data.asunto || ''}
             </div>
+            <p class="hora-tag" style="margin-top: 6px;">🕒 Recepción: ${data.hora} hs</p>
           `;
 
-          // SI EL CORREO TIENE CÓDIGO NUMÉRICO (Ej: Disney, Max, etc.), SE MUESTRA EN GRANDE EN LA PANTALLA
+          // ORDEN DE PRIORIDAD ABSOLUTA: SI TRAE CÓDIGO NUMÉRICO, SE MUESTRA EN PANTALLA Y NO ABRE NINGÚN ENLACE EXTERNO
           if (data.codigo) {
             html += `
               <div class="codigo-display">
@@ -103,26 +156,36 @@
               </div>
             `;
           } 
-          // SI TIENE ENLACE (Ej: Hogar de Netflix), MUESTRA EL BOTÓN VERDE
+          // SÓLO SI NO TIENE CÓDIGO PERO SÍ TIENE ENLACE (ej. Hogar de Netflix), MUESTRA EL BOTÓN VERDE
           else if (data.enlace) {
             html += `
               <a href="${data.enlace}" target="_blank" class="link-btn">🔗 Abrir Enlace de Verificación</a>
             `;
           } else {
-            html += `<p style="color:#ccc;">Se encontró el correo pero no contenía código ni enlace válido.</p>`;
+            html += `<p style="color:#ccc; margin-top:10px;">Se encontró el correo pero no contenía código ni enlace válido.</p>`;
           }
 
           resultadoDiv.innerHTML = html;
         } 
-        // CASO 3: ERROR GENERAL O NO ENCONTRADO
+        // CASO 3: NO ENCONTRADO
         else {
-          resultadoDiv.innerHTML = `<p class="error">${data.error || 'Ocurrió un error inesperado.'}</p>`;
+          const mensajeError = data.error || 'No se encontró un correo válido para esta cuenta.';
+          resultadoDiv.innerHTML = `
+            <p class="error">${mensajeError}</p>
+            <button id="btnWS" class="btn-ws" type="button">Contactar con Administrador</button>
+          `;
+
+          document.getElementById('btnWS').addEventListener('click', () => {
+            const textoMensaje = `Hola, no me aparece el código ni el enlace de verificación en el sistema para el correo: ${correo}`;
+            window.open(`https://api.whatsapp.com/send?phone=${TELEFONO_SOPORTE}&text=${encodeURIComponent(textoMensaje)}`, '_blank');
+          });
         }
+
       } catch (err) {
         resultadoDiv.innerHTML = '<p class="error">Error de conexión con el servidor.</p>';
       } finally {
         submitBtn.disabled = false;
-        submitBtn.innerText = 'Obtener Enlace';
+        submitBtn.innerText = 'Buscar Enlace';
       }
     });
   </script>
