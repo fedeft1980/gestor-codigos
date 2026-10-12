@@ -1,224 +1,130 @@
-<script>
-    // ============= FONDO ESTILO MATRIX =============
-    (function () {
-      const canvas = document.getElementById('matrixFondo');
-      const ctx = canvas.getContext('2d');
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FT_STORE - Gestor de Enlaces</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    body { background-color: #121212; color: #ffffff; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+    .card { background-color: #1e1e1e; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); width: 100%; max-width: 440px; text-align: center; }
+    .logo-container { margin-bottom: 15px; display: flex; justify-content: center; align-items: center; }
+    .logo-img { max-width: 140px; max-height: 80px; width: auto; height: auto; object-fit: contain; }
+    h1 { font-size: 1.6rem; margin-bottom: 4px; color: #ffffff; font-weight: bold; }
+    .sub { color: #e50914; font-size: 0.85rem; font-weight: bold; margin-bottom: 20px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .form-group { margin-bottom: 15px; text-align: left; }
+    label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: #ccc; }
+    input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333; background-color: #2b2b2b; color: #fff; font-size: 1rem; outline: none; }
+    input:focus { border-color: #e50914; }
+    button { width: 100%; padding: 12px; background-color: #e50914; color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background-color 0.2s; }
+    button:hover { background-color: #b20710; }
+    button:disabled { background-color: #555; cursor: not-allowed; }
+    .result-container { margin-top: 20px; padding: 15px; border-radius: 8px; background-color: #2b2b2b; display: none; word-break: break-word; text-align: center; }
+    .result-container.active { display: block; }
+    .hora-tag { font-size: 0.9rem; color: #aaa; margin-bottom: 10px; }
+    .link-btn { display: inline-block; margin-top: 12px; padding: 14px 18px; background-color: #25d366; color: #000; text-decoration: none; border-radius: 8px; font-weight: 900; font-size: 1.05rem; text-transform: uppercase; width: 100%; }
+    .warning-box { background-color: #3d0a0a; border: 2px solid #ff4d4d; color: #ff9999; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 0.9rem; margin-top: 10px; line-height: 1.4; text-transform: uppercase; }
+    .error { color: #ff4d4d; font-weight: bold; }
+    .success { color: #4dff88; font-weight: bold; margin-bottom: 5px; font-size: 1.1rem; }
+    .codigo-display { margin: 15px 0; background: #111; padding: 15px; border-radius: 8px; border: 2px dashed #4caf50; }
+  </style>
+</head>
+<body>
 
-      let ancho, alto, columnas, gotas, colDatos;
+  <div class="card">
+    <div class="logo-container">
+      <img src="logo.jpeg" alt="FT_STORE" class="logo-img">
+    </div>
+    <h1>FT_STORE</h1>
+    <div class="sub">Gestor de Enlaces de Verificación</div>
 
-      const CARACTERES = 'アカサタナハマヤラワ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-      const PLATAFORMAS = ['NETFLIX', 'DISNEY+', 'HBOMAX', 'PRIME', 'SPOTIFY', 'YOUTUBE', 'CRUNCHYROLL', 'PARAMOUNT'];
-      const TAM_FUENTE = 22; 
-      const FPS_OBJETIVO = 20; 
-      const INTERVALO_FRAME = 1000 / FPS_OBJETIVO;
-      const SALTO_COLUMNA = 2; 
-      let ultimoFrame = 0;
+    <form id="codigoForm">
+      <div class="form-group">
+        <label for="correo">Correo Electrónico:</label>
+        <input type="email" id="correo" placeholder="ejemplo@correo.com" required>
+      </div>
+      <button type="submit" id="submitBtn">Obtener Enlace</button>
+    </form>
 
-      function ajustarTamano() {
-        ancho = canvas.width = window.innerWidth;
-        alto = canvas.height = window.innerHeight;
-        columnas = Math.floor(ancho / TAM_FUENTE / SALTO_COLUMNA);
+    <div id="resultado" class="result-container"></div>
+  </div>
 
-        gotas = new Array(columnas).fill(0).map(() => Math.floor(Math.random() * -50));
-        colDatos = new Array(columnas).fill(null);
-
-        const cantColumnasConNombre = Math.max(1, Math.floor(columnas / 30));
-        for (let i = 0; i < cantColumnasConNombre; i++) {
-          const col = Math.floor(Math.random() * columnas);
-          const palabra = PLATAFORMAS[Math.floor(Math.random() * PLATAFORMAS.length)];
-          colDatos[col] = { palabra, offset: 0 };
-        }
-      }
-
-      function elegirCaracter(col, fila) {
-        const info = colDatos[col];
-        if (info) {
-          const letra = info.palabra[info.offset % info.palabra.length];
-          info.offset++;
-          return letra;
-        }
-        return CARACTERES[Math.floor(Math.random() * CARACTERES.length)];
-      }
-
-      function dibujar(marcaTiempo) {
-        requestAnimationFrame(dibujar);
-
-        if (marcaTiempo - ultimoFrame < INTERVALO_FRAME) {
-          return;
-        }
-        ultimoFrame = marcaTiempo;
-
-        ctx.fillStyle = 'rgba(10, 10, 10, 0.15)';
-        ctx.fillRect(0, 0, ancho, alto);
-
-        ctx.font = TAM_FUENTE + 'px monospace';
-        ctx.globalAlpha = 0.55;
-
-        for (let i = 0; i < columnas; i++) {
-          const esColumnaEspecial = !!colDatos[i];
-          ctx.fillStyle = esColumnaEspecial ? '#ff3b3b' : '#00ff41';
-
-          const caracter = elegirCaracter(i, gotas[i]);
-          ctx.fillText(caracter, i * TAM_FUENTE * SALTO_COLUMNA, gotas[i] * TAM_FUENTE);
-
-          if (gotas[i] * TAM_FUENTE > alto && Math.random() > 0.98) {
-            gotas[i] = 0;
-            if (Math.random() > 0.9) {
-              const palabra = PLATAFORMAS[Math.floor(Math.random() * PLATAFORMAS.length)];
-              colDatos[i] = { palabra, offset: 0 };
-            } else {
-              colDatos[i] = null;
-            }
-          }
-          gotas[i]++;
-        }
-        ctx.globalAlpha = 1;
-      }
-
-      ajustarTamano();
-      window.addEventListener('resize', ajustarTamano);
-      requestAnimationFrame(dibujar);
-    })();
-    // ============= FIN FONDO MATRIX =============
-
-    const TELEFONO_SOPORTE = "5492657219227";
-
-    const form = document.getElementById('formConsulta');
-    const btnBuscar = document.getElementById('btnBuscar');
-    const contenedorResultado = document.getElementById('resultado');
+  <script>
+    const form = document.getElementById('codigoForm');
+    const correoInput = document.getElementById('correo');
+    const submitBtn = document.getElementById('submitBtn');
+    const resultadoDiv = document.getElementById('resultado');
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      
+      const correo = correoInput.value.trim();
+      if (!correo) return;
 
-      const correoCliente = document.getElementById('correoCliente').value.trim();
-
-      btnBuscar.disabled = true;
-      btnBuscar.textContent = 'Buscando...';
-
-      contenedorResultado.style.display = 'block';
-      contenedorResultado.innerHTML = `
-        <div class="card-res card-exito">
-          <p style="color:#ccc;">Conectando con la casilla...</p>
-        </div>
-      `;
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'Buscando...';
+      resultadoDiv.className = 'result-container active';
+      resultadoDiv.innerHTML = '<p style="color:#ccc;">Consultando correo...</p>';
 
       try {
-        const res = await fetch('/api/obtener-codigo', {
+        const response = await fetch('/api/obtener-codigo', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ correoCliente })
+          body: JSON.stringify({ correoCliente: correo })
         });
 
-        const data = await res.json();
+        const data = await response.json();
 
-        // CASO 1: VENCIDO O ERROR DESDE EL BACKEND
-        if (data.vencido || (res.ok && data.exito === false)) {
-          contenedorResultado.innerHTML = `
-            <div class="card-res card-vencido">
-              <p class="mensaje-vencido">⚠️ ENLACE VENCIDO O NO VÁLIDO</p>
-              <p style="color:#ccc; font-size:0.85rem; margin-top:8px;">
-                ${data.error || 'El correo superó el límite de tiempo o requiere reenvío.'}
-              </p>
-              <button id="btnReenviar" class="btn-reenviar" type="button">
-                Reenviar / Solicitar Soporte
-              </button>
+        // CASO 1: CORREO VENCIDO O ERROR DE TIEMPO (> 13 MINUTOS)
+        if (data.vencido) {
+          resultadoDiv.innerHTML = `
+            <p class="hora-tag"><strong>Hora de recepción:</strong> ${data.hora} hs</p>
+            <div class="warning-box">
+              ⚠️ ${data.error}
+            </div>
+          `;
+        } 
+        // CASO 2: ÉXITO - CORREO VÁLIDO ENCONTRADO
+        else if (response.ok && data.exito) {
+          let html = `
+            <p class="success">¡Correo Encontrado! (${data.servicio || 'Servicio'})</p>
+            <p class="hora-tag"><strong>Hora:</strong> ${data.hora} hs</p>
+            <div style="font-size: 11px; margin-bottom: 10px; color: #aaa;">
+              <strong>Asunto:</strong> ${data.asunto || ''}
             </div>
           `;
 
-          const textoReenvio = `Hola, necesito soporte con el correo: ${correoCliente}. El código/enlace ha vencido o requiere validación.`;
-          document.getElementById('btnReenviar').addEventListener('click', async () => {
-            try { await navigator.clipboard.writeText(textoReenvio); } catch (e) {}
-            const url = `https://api.whatsapp.com/send?phone=${TELEFONO_SOPORTE}&text=${encodeURIComponent(textoReenvio)}`;
-            window.open(url, '_blank');
-          });
-          return;
-        }
-
-        // CASO 2: ÉXITO - CORREO ENCONTRADO DENTRO DE LOS 13 MINUTOS
-        if (res.ok && data.exito) {
-          let horaRecepcionTexto = '';
-          if (data.fechaRecepcion) {
-            const fechaRecepcion = new Date(data.fechaRecepcion);
-            horaRecepcionTexto = fechaRecepcion.toLocaleString('es-AR', {
-              hour: '2-digit', minute: '2-digit', second: '2-digit',
-              day: '2-digit', month: '2-digit'
-            });
-          }
-
-          let html = `
-            <div class="card-res card-exito">
-              <p class="mensaje-exito">¡Correo Encontrado! (${data.servicio || 'Servicio'})</p>
-              <div style="font-size: 12px; margin-top: 6px; color: #aaa; word-break: break-word;">
-                <strong>Asunto:</strong> ${data.asunto}
-              </div>
-          `;
-
-          if (horaRecepcionTexto) {
-            html += `<div class="hora-recepcion">🕒 Recepción: ${horaRecepcionTexto}</div>`;
-          }
-
-          // PRIORIDAD 1: SI TRAE CÓDIGO NUMÉRICO (Disney, Netflix por código, Max, etc.)
+          // SI EL CORREO TIENE CÓDIGO NUMÉRICO (Ej: Disney, Max, etc.), SE MUESTRA EN GRANDE EN LA PANTALLA
           if (data.codigo) {
             html += `
-              <div style="margin: 20px 0; background: #111; padding: 15px; border-radius: 8px; border: 2px dashed #4caf50;">
+              <div class="codigo-display">
                 <span style="font-size: 0.8rem; color: #aaa; display: block; margin-bottom: 5px;">CÓDIGO DE VERIFICACIÓN:</span>
                 <span style="font-size: 2.2rem; font-weight: bold; color: #4caf50; letter-spacing: 4px;">${data.codigo}</span>
               </div>
             `;
           } 
-          // PRIORIDAD 2: SI TRAE ENLACE (Hogar de Netflix, etc.)
+          // SI TIENE ENLACE (Ej: Hogar de Netflix), MUESTRA EL BOTÓN VERDE
           else if (data.enlace) {
             html += `
-              <a href="${data.enlace}" target="_blank" class="btn-enlace-gigante">
-                🔗 ABRIR ENLACE DE VERIFICACIÓN
-              </a>
+              <a href="${data.enlace}" target="_blank" class="link-btn">🔗 Abrir Enlace de Verificación</a>
             `;
           } else {
-            html += `
-              <p style="color:#ccc; margin-top:10px;">
-                Se encontró el correo pero no contenía un código numérico ni un enlace válido.
-              </p>
-            `;
+            html += `<p style="color:#ccc;">Se encontró el correo pero no contenía código ni enlace válido.</p>`;
           }
 
-          html += `</div>`;
-          contenedorResultado.innerHTML = html;
-
-        } else {
-          // CASO 3: ERROR 404 u OTROS
-          const mensajeError = data.error || 'No se encontró un correo válido para esta cuenta.';
-          const textoMensaje = `Hola, no me aparece el código ni el enlace de verificación en el sistema.\nCorreo: ${correoCliente}`;
-
-          contenedorResultado.innerHTML = `
-            <div class="card-res card-error">
-              <p class="mensaje-error">${mensajeError}</p>
-              <p class="texto-ayuda">Verifica el correo ingresado o reporta a soporte.</p>
-              <button id="btnWS" class="btn-ws" type="button">
-                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.842-1.001z"/>
-                </svg>
-                Copiar y reportar por WhatsApp
-              </button>
-            </div>
-          `;
-
-          document.getElementById('btnWS').addEventListener('click', async () => {
-            try { await navigator.clipboard.writeText(textoMensaje); } catch (e) {}
-            const url = `https://api.whatsapp.com/send?phone=${TELEFONO_SOPORTE}&text=${encodeURIComponent(textoMensaje)}`;
-            window.open(url, '_blank');
-          });
+          resultadoDiv.innerHTML = html;
+        } 
+        // CASO 3: ERROR GENERAL O NO ENCONTRADO
+        else {
+          resultadoDiv.innerHTML = `<p class="error">${data.error || 'Ocurrió un error inesperado.'}</p>`;
         }
-
       } catch (err) {
-        contenedorResultado.innerHTML = `
-          <div class="card-res card-error">
-            <p class="mensaje-error">Error de conexión con el servidor.</p>
-            <p class="texto-ayuda">Intenta nuevamente en unos segundos.</p>
-          </div>
-        `;
+        resultadoDiv.innerHTML = '<p class="error">Error de conexión con el servidor.</p>';
       } finally {
-        btnBuscar.disabled = false;
-        btnBuscar.textContent = 'Buscar Enlace';
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'Obtener Enlace';
       }
     });
   </script>
+</body>
+</html>
