@@ -110,7 +110,6 @@
       text-transform: uppercase;
     }
 
-    /* Cartel de Aviso Destacado */
     .banner-aviso {
       background: linear-gradient(135deg, #2b1100 0%, #1a1a1a 100%);
       border: 1px solid #ff9800;
@@ -333,7 +332,6 @@
     <h1>FT_STORE</h1>
     <p class="sub">GESTOR DE ENLACES DE VERIFICACIÓN</p>
 
-    <!-- CARTEL DE AVISO DIRECTIVA -->
     <div class="banner-aviso">
       <div class="banner-titulo">🚨 ATENCIÓN A TODOS</div>
       <p>A partir de hoy, <strong>TODOS los reportes deben hacerse desde la página</strong>.</p>
@@ -348,7 +346,6 @@
 
       <div class="form-group">
         <label for="correoCliente">Correo del Cliente</label>
-
         <input
           type="email"
           id="correoCliente"
@@ -368,13 +365,9 @@
   </div>
 
   <script>
-
-    // ============= FONDO ESTILO MATRIX =============
     (function () {
-
       const canvas = document.getElementById('matrixFondo');
       const ctx = canvas.getContext('2d');
-
       let ancho, alto, columnas, gotas, colDatos;
 
       const CARACTERES = 'アカサタナハマヤラワ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -412,12 +405,8 @@
       }
 
       function dibujar(marcaTiempo) {
-
         requestAnimationFrame(dibujar);
-
-        if (marcaTiempo - ultimoFrame < INTERVALO_FRAME) {
-          return;
-        }
+        if (marcaTiempo - ultimoFrame < INTERVALO_FRAME) return;
         ultimoFrame = marcaTiempo;
 
         ctx.fillStyle = 'rgba(10, 10, 10, 0.15)';
@@ -427,7 +416,6 @@
         ctx.globalAlpha = 0.55;
 
         for (let i = 0; i < columnas; i++) {
-
           const esColumnaEspecial = !!colDatos[i];
           ctx.fillStyle = esColumnaEspecial ? '#ff3b3b' : '#00ff41';
 
@@ -436,7 +424,6 @@
 
           if (gotas[i] * TAM_FUENTE > alto && Math.random() > 0.98) {
             gotas[i] = 0;
-
             if (Math.random() > 0.9) {
               const palabra = PLATAFORMAS[Math.floor(Math.random() * PLATAFORMAS.length)];
               colDatos[i] = { palabra, offset: 0 };
@@ -444,62 +431,45 @@
               colDatos[i] = null;
             }
           }
-
           gotas[i]++;
         }
-
         ctx.globalAlpha = 1;
       }
 
       ajustarTamano();
       window.addEventListener('resize', ajustarTamano);
       requestAnimationFrame(dibujar);
-
     })();
-    // ============= FIN FONDO MATRIX =============
 
     const TELEFONO_SOPORTE = "5492657219227";
-
     const form = document.getElementById('formConsulta');
     const btnBuscar = document.getElementById('btnBuscar');
     const contenedorResultado = document.getElementById('resultado');
 
     form.addEventListener('submit', async (e) => {
-
       e.preventDefault();
-
-      const correoCliente =
-        document.getElementById('correoCliente').value.trim();
+      const correoCliente = document.getElementById('correoCliente').value.trim();
 
       btnBuscar.disabled = true;
       btnBuscar.textContent = 'Buscando...';
-
       contenedorResultado.style.display = 'block';
 
       contenedorResultado.innerHTML = `
         <div class="card-res card-exito">
-          <p style="color:#ccc;">
-            Conectando con la casilla...
-          </p>
+          <p style="color:#ccc;">Conectando con la casilla...</p>
         </div>
       `;
 
       try {
-
         const res = await fetch('/api/obtener-codigo', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            correoCliente
-          })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ correoCliente })
         });
 
         const data = await res.json();
 
         if (res.ok && data.exito) {
-
           let horaRecepcionTexto = '';
           let minutosTranscurridos = null;
 
@@ -536,142 +506,70 @@
           }
 
           if (enlaceVencido) {
-
             html += `
-              <p class="mensaje-vencido" style="margin-top:10px;">
-                ⚠️ Enlace vencido
-              </p>
-              <p style="color:#ccc; font-size:0.85rem; margin-top:4px;">
-                Recibido hace más de 13 minutos. Solicita el reenvío.
-              </p>
-              <button
-                id="btnReenviar"
-                class="btn-reenviar"
-                type="button"
-              >
-                Reenviar
-              </button>
+              <p class="mensaje-vencido" style="margin-top:10px;">⚠️ Enlace vencido</p>
+              <p style="color:#ccc; font-size:0.85rem; margin-top:4px;">Recibido hace más de 13 minutos. Solicita el reenvío.</p>
+              <button id="btnReenviar" class="btn-reenviar" type="button">Reenviar</button>
             `;
-
           } else if (data.enlace) {
-            // MOSTRAR DIRECTAMENTE EL BOTÓN GIGANTE PARA ABRIR EL ENLACE
+            // MUESTRA DIRECTAMENTE EL BOTÓN GIGANTE PARA ABRIR EL ENLACE
             html += `
-              <a
-                href="${data.enlace}"
-                target="_blank"
-                class="btn-enlace-gigante"
-              >
+              <a href="${data.enlace}" target="_blank" class="btn-enlace-gigante">
                 🔗 ABRIR ENLACE DE VERIFICACIÓN
               </a>
             `;
           } else {
             html += `
-              <p style="color:#ccc; margin-top:10px;">
-                Se encontró el correo pero no contenía un enlace de verificación válido.
-              </p>
+              <p style="color:#ccc; margin-top:10px;">Se encontró el correo pero no contenía un enlace de verificación válido.</p>
             `;
           }
 
           html += `</div>`;
-
           contenedorResultado.innerHTML = html;
 
           if (enlaceVencido) {
-
-            const textoReenvio =
-`Hola, el enlace de verificación llegó hace más de 13 minutos y está vencido. Necesito que me reenvíen uno nuevo.
-Correo: ${correoCliente}`;
-
-            document
-              .getElementById('btnReenviar')
-              .addEventListener('click', () => {
-                const url =
-                  `https://api.whatsapp.com/send?phone=${TELEFONO_SOPORTE}&text=${encodeURIComponent(textoReenvio)}`;
-                window.open(url, '_blank');
-              });
-
+            const textoReenvio = `Hola, el enlace de verificación llegó hace más de 13 minutos y está vencido. Necesito que me reenvíen uno nuevo.\nCorreo: ${correoCliente}`;
+            document.getElementById('btnReenviar').addEventListener('click', () => {
+              const url = `https://api.whatsapp.com/send?phone=${TELEFONO_SOPORTE}&text=${encodeURIComponent(textoReenvio)}`;
+              window.open(url, '_blank');
+            });
           }
 
         } else {
-
-          const mensajeError =
-            data.error ||
-            'No se encontró un correo válido para esta cuenta.';
-
+          const mensajeError = data.error || 'No se encontró un correo válido para esta cuenta.';
           contenedorResultado.innerHTML = `
-
             <div class="card-res card-error">
-
-              <p class="mensaje-error">
-                ${mensajeError}
-              </p>
-
-              <button
-                id="btnWS"
-                class="btn-ws"
-                type="button"
-              >
-
-                <svg
-                  width="20"
-                  height="20"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
+              <p class="mensaje-error">${mensajeError}</p>
+              <button id="btnWS" class="btn-ws" type="button">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.842-1.001z"/>
                 </svg>
-
                 Contactar con Administrador
-
               </button>
-
               <div class="card-advertencia">
-                <div class="card-advertencia-titulo">
-                  ⚠️ Importante
-                </div>
+                <div class="card-advertencia-titulo">⚠️ Importante</div>
                 Solo se recibirán reclamos que provengan de esta página, acompañados obligatoriamente de la foto de la pantalla del televisor del cliente que demuestre el envío del mail.
               </div>
-
             </div>
           `;
 
-          document
-            .getElementById('btnWS')
-            .addEventListener('click', () => {
-              const url = `https://api.whatsapp.com/send?phone=${TELEFONO_SOPORTE}`;
-              window.open(url, '_blank');
-            });
-
+          document.getElementById('btnWS').addEventListener('click', () => {
+            const url = `https://api.whatsapp.com/send?phone=${TELEFONO_SOPORTE}`;
+            window.open(url, '_blank');
+          });
         }
-
       } catch (err) {
-
         contenedorResultado.innerHTML = `
-
           <div class="card-res card-error">
-
-            <p class="mensaje-error">
-              Error de conexión con el servidor.
-            </p>
-
-            <p class="texto-ayuda">
-              Intenta nuevamente en unos segundos.
-            </p>
-
+            <p class="mensaje-error">Error de conexión con el servidor.</p>
+            <p class="texto-ayuda">Intenta nuevamente en unos segundos.</p>
           </div>
-
         `;
-
       } finally {
-
         btnBuscar.disabled = false;
         btnBuscar.textContent = 'Buscar Enlace';
-
       }
-
     });
-
   </script>
-
 </body>
 </html>
