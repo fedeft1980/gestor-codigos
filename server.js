@@ -163,7 +163,7 @@ app.post('/api/obtener-codigo', async (req, res) => {
         codigoMatch = contenido.match(/\b\d{4,6}\b/);
       }
 
-      // Limpieza robusta de URLs: extrae coincidencias y asegura que comiencen exactamente en 'https://'
+      // Limpieza robusta de URLs para evitar basura de seguimiento (como los hashes de Disney)
       const urlsMatch = contenido.match(/https?:\/\/[^\s"'<>;\]]+/g) || [];
       const urls = urlsMatch.map(url => {
         const indexHttp = url.indexOf('https://');
@@ -187,7 +187,7 @@ app.post('/api/obtener-codigo', async (req, res) => {
       return res.json({
         exito: true,
         vencido: false,
-        servicio: servicioDetectado,
+        servicio: servicioDetectado,https://github.com/fedeft1980/gestor-codigos/blob/main/server.js
         correo: correoCliente,
         asunto: asuntoEncontrado,
         codigo: codigoMatch ? codigoMatch[0] : null,
