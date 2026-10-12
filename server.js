@@ -72,7 +72,7 @@ app.post('/api/obtener-codigo', async (req, res) => {
         const asuntoLower = asunto.toLowerCase();
         const cuerpoTexto = (parsed.text || parsed.html || '').toLowerCase();
 
-        // 1. Filtros Netflix
+        // 1. Filtros Netflix (Soporta códigos y variantes de cambio/actualización de hogar)
         const esNetflix = remitente.includes('netflix.com');
         const esAccesoNetflix = asuntoLower.includes('obten tu cod') || 
                                 asuntoLower.includes('obtén tu cod') || 
@@ -136,13 +136,13 @@ app.post('/api/obtener-codigo', async (req, res) => {
 
       // --- VALIDACIÓN DE VENCIMIENTO (13 MINUTOS) ---
       const fechaCorreo = correoValido.date ? new Date(correoValido.date) : new Date();
-      const horaFormateada = fechaCorreo.toLocaleTimeString('es-ES', {
-        hour: '2-digit', minute: '2-digit', second: '2-digit'
-      });
+      const horaFormateada = !isNaN(fechaCorreo.getTime()) 
+        ? fechaCorreo.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) 
+        : 'Desconocida';
 
       const diferenciaMinutos = (Date.now() - fechaCorreo.getTime()) / (1000 * 60);
 
-      if (diferenciaMinutos > 13) {
+      if (isNaN(diferenciaMinutos) || diferenciaMinutos > 13) {
         return res.json({
           exito: false,
           vencido: true,
@@ -163,7 +163,7 @@ app.post('/api/obtener-codigo', async (req, res) => {
         codigoMatch = contenido.match(/\b\d{4,6}\b/);
       }
 
-      // Limpieza robusta de URLs para evitar basura de seguimiento (como los hashes de Disney)
+      // Limpieza robusta de URLs
       const urlsMatch = contenido.match(/https?:\/\/[^\s"'<>;\]]+/g) || [];
       const urls = urlsMatch.map(url => {
         const indexHttp = url.indexOf('https://');
@@ -185,9 +185,9 @@ app.post('/api/obtener-codigo', async (req, res) => {
       );
 
       return res.json({
-        exito: true,
+        exito: true,https://github.com/fedeft1980/gestor-codigos/blob/main/server.js
         vencido: false,
-        servicio: servicioDetectado,https://github.com/fedeft1980/gestor-codigos/blob/main/server.js
+        servicio: servicioDetectado,
         correo: correoCliente,
         asunto: asuntoEncontrado,
         codigo: codigoMatch ? codigoMatch[0] : null,
@@ -209,7 +209,7 @@ app.post('/api/obtener-codigo', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor activo en http://localhost:${PORT}`);
 });
