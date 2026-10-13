@@ -1,8 +1,12 @@
-const express = require('express');
-const { ImapFlow } = require('imapflow');
-const { simpleParser } = require('mailparser');
-const path = require('path');
-require('dotenv').config();
+import express from 'express';
+import { ImapFlow } from 'imapflow';
+import mailparser from 'mailparser';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import 'dotenv/config';
+
+const { simpleParser } = mailparser;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 app.use(express.json());
@@ -71,7 +75,7 @@ function esCorreoValido(asunto) {
 }
 
 // Ruta para comprobar que corre la versión nueva
-app.get('/version', (req, res) => res.send('server nuevo v3'));
+app.get('/version', (req, res) => res.send('server nuevo v4 (ESM)'));
 
 app.post('/api/obtener-codigo', async (req, res) => {
   const { correoCliente } = req.body;
@@ -134,7 +138,14 @@ app.post('/api/obtener-codigo', async (req, res) => {
 
   } catch (error) {
     console.error('Error en el servidor:', error.message, '|', error.responseText || '', '|', error.code || '');
-    return res.status(500).json({ exito: false, error: 'Error al consultar la bandeja de entrada.' });
+    // TEMPORAL: muestra el motivo real en pantalla para diagnosticar.
+    // Cuando funcione, volver a: error: 'Error al consultar la bandeja de entrada.'
+    return res.status(500).json({
+      exito: false,
+      error: 'Error: ' + error.message +
+        (error.responseText ? ' | ' + error.responseText : '') +
+        (error.code ? ' | ' + error.code : '')
+    });
   } finally {
     try { await client.logout(); } catch (_) {}
   }
