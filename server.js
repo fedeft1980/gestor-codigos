@@ -9,15 +9,27 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Acepta varios nombres posibles de variables de entorno
+const EMAIL_USER = process.env.EMAIL_USER || process.env.GMAIL_USER || process.env.IMAP_USER || process.env.USER_EMAIL;
+const EMAIL_PASS = process.env.EMAIL_PASS || process.env.GMAIL_PASS || process.env.IMAP_PASS || process.env.APP_PASSWORD;
+const IMAP_HOST = process.env.IMAP_HOST || 'imap.gmail.com';
+const IMAP_PORT = parseInt(process.env.IMAP_PORT || '993');
+
+if (!EMAIL_USER || !EMAIL_PASS) {
+  console.error('FALTAN VARIABLES DE ENTORNO: EMAIL_USER y/o EMAIL_PASS no están definidas en Render.');
+} else {
+  console.log(`Configuración IMAP: usuario=${EMAIL_USER} host=${IMAP_HOST}:${IMAP_PORT}`);
+}
+
 // Se crea un cliente nuevo por cada consulta (un cliente no se puede reutilizar tras logout)
 function crearCliente() {
   return new ImapFlow({
-    host: process.env.IMAP_HOST || 'imap.gmail.com',
-    port: parseInt(process.env.IMAP_PORT || '993'),
+    host: IMAP_HOST,
+    port: IMAP_PORT,
     secure: true,
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
+      user: EMAIL_USER,
+      pass: EMAIL_PASS
     },
     logger: false
   });
@@ -58,6 +70,9 @@ function esCorreoValido(asunto) {
   return esAcceso || esHogar;
 }
 
+// Ruta para comprobar que corre la versión nueva
+app.get('/version', (req, res) => res.send('server nuevo v3'));
+
 app.post('/api/obtener-codigo', async (req, res) => {
   const { correoCliente } = req.body;
 
@@ -78,7 +93,7 @@ app.post('/api/obtener-codigo', async (req, res) => {
       // Buscar correos dirigidos al cliente
       const uids = await client.search({ to: correoCliente.trim() }, { uid: true });
 
-      // Tomar los 5 más recientes (los UIDs más altos), del más nuevo al más viejo
+      // Tomar los 5 más recientes (UIDs más altos), del más nuevo al más viejo
       const ultimos = (uids || []).slice(-5).reverse();
 
       for (const uid of ultimos) {
@@ -118,13 +133,13 @@ app.post('/api/obtener-codigo', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error en el servidor:', error);
+    console.error('Error en el servidor:', error.message, '|', error.responseText || '', '|', error.code || '');
     return res.status(500).json({ exito: false, error: 'Error al consultar la bandeja de entrada.' });
   } finally {
     try { await client.logout(); } catch (_) {}
   }
 });
-app.get('/version', (req, res) => res.send('server nuevo v2'));
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Servidor activo en http://localhost:${PORT}`);
