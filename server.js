@@ -124,7 +124,7 @@ app.post('/api/obtener-codigo', async (req, res) => {
     try { await client.logout(); } catch (_) {}
   }
 });
-
+app.get('/version', (req, res) => res.send('server nuevo v2'));
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Servidor activo en http://localhost:${PORT}`);
