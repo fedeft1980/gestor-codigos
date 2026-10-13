@@ -9,32 +9,53 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Configuración de conexión IMAP (ej. Gmail con contraseña de aplicación)
-const client = new ImapFlow({
-  host: process.env.IMAP_HOST || 'imap.gmail.com',
-  port: parseInt(process.env.IMAP_PORT || '993'),
-  secure: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  },
-  logger: false
-});
+// Se crea un cliente nuevo por cada consulta (un cliente no se puede reutilizar tras logout)
+function crearCliente() {
+  return new ImapFlow({
+    host: process.env.IMAP_HOST || 'imap.gmail.com',
+    port: parseInt(process.env.IMAP_PORT || '993'),
+    secure: true,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    },
+    logger: false
+  });
+}
 
-// Función auxiliar para extraer enlaces
-function extraerEnlaceDelCuerpo(texto) {
-  if (!texto) return null;
-  const urlRegex = /(https?:\/\/[^\s"<]+)/g;
-  const urls = texto.match(urlRegex);
-  if (!urls || urls.length === 0) return null;
+// Extrae el enlace más relevante del correo (prioriza netflix.com)
+function extraerEnlaceDelCuerpo(parsed) {
+  const texto = (parsed.text || '') + '\n' + (parsed.html || '');
+  if (!texto.trim()) return null;
 
-  // Filtrar enlaces de tracking o basura común si es necesario
-  for (let url of urls) {
-    if (!url.includes('google.com') && !url.includes('schema.org') && !url.includes('facebook')) {
-      return url.replace(/["'>]/g, '');
-    }
-  }
-  return urls[0].replace(/["'>]/g, '');
+  const urls = (texto.match(/https?:\/\/[^\s"'<>)\]]+/g) || [])
+    .map(u => u.replace(/&amp;/g, '&').replace(/[.,;]+$/, ''));
+
+  const descartar = [
+    '.png', '.jpg', '.jpeg', '.gif', 'schema.org', 'facebook', 'twitter',
+    'instagram', 'google.com', 'unsubscribe', 'privacy', 'help.netflix'
+  ];
+
+  const validas = urls.filter(u => !descartar.some(d => u.toLowerCase().includes(d)));
+
+  return validas.find(u => u.includes('netflix.com')) || validas[0] || null;
+}
+
+function esCorreoValido(asunto) {
+  const a = (asunto || '').toLowerCase();
+
+  const esAcceso =
+    a.includes('obten tu cod') ||
+    a.includes('obtén tu cod') ||
+    a.includes('código de acceso temporal') ||
+    a.includes('codigo de acceso temporal');
+
+  const esHogar =
+    a.includes('actualizar tu hogar') ||
+    a.includes('cómo cambiar tu hogar') ||
+    a.includes('como cambiar tu hogar');
+
+  return esAcceso || esHogar;
 }
 
 app.post('/api/obtener-codigo', async (req, res) => {
@@ -44,100 +65,63 @@ app.post('/api/obtener-codigo', async (req, res) => {
     return res.status(400).json({ exito: false, error: 'Debe ingresar un correo electrónico.' });
   }
 
+  const client = crearCliente();
+
   try {
     await client.connect();
-    let lock = await client.getMailboxLock('INBOX');
+    const lock = await client.getMailboxLock('INBOX');
+
+    let correoEncontrado = null;
+    let fechaCorreo = null;
 
     try {
       // Buscar correos dirigidos al cliente
-      const query = { to: correoCliente.trim() };
-      const messages = client.fetch(query, { envelope: true, source: true }, { reverse: true, limit: 5 });
+      const uids = await client.search({ to: correoCliente.trim() }, { uid: true });
 
-      let correoValido = null;
-      let asuntoEncontrado = '';
-      let fechaCorreo = null;
-      let contenido = '';
+      // Tomar los 5 más recientes (los UIDs más altos), del más nuevo al más viejo
+      const ultimos = (uids || []).slice(-5).reverse();
 
-      for await (let msg of messages) {
+      for (const uid of ultimos) {
+        const msg = await client.fetchOne(uid, { envelope: true, source: true }, { uid: true });
+        if (!msg || !msg.source) continue;
+
         const parsed = await simpleParser(msg.source);
-        const asunto = parsed.subject || '';
-        const asuntoLower = asunto.toLowerCase();
 
-        // Validar si es un correo de acceso/código o de hogar de Netflix
-        const esAccesoCodigo = asuntoLower.includes('obten tu cod') || 
-                              asuntoLower.includes('obtén tu cod') || 
-                              asuntoLower.includes('código de acceso temporal') || 
-                              asuntoLower.includes('codigo de acceso temporal');
-
-        const esHogar = asuntoLower.includes('actualizar tu hogar') ||
-                        asuntoLower.includes('cómo cambiar tu hogar') ||
-                        asuntoLower.includes('como cambiar tu hogar');
-
-        if (esAccesoCodigo || esHogar) {
-          correoValido = parsed;
-          asuntoEncontrado = asunto;
-          fechaCorreo = msg.envelope.date || parsed.date;
-          contenido = parsed.text || parsed.html || '';
-          break; // Tomar el más reciente que coincida
+        if (esCorreoValido(parsed.subject)) {
+          correoEncontrado = parsed;
+          fechaCorreo = (msg.envelope && msg.envelope.date) || parsed.date;
+          break; // el más reciente que coincida
         }
       }
-
-      if (!correoValido || !fechaCorreo) {
-        lock.release();
-        await client.logout();
-        return res.status(404).json({ exito: false, error: 'No se encontraron correos recientes de verificación o hogar para este cliente.' });
-      }
-
-      // Cálculo de tiempo transcurrido (Regla de los 13 minutos)
-      const ahora = Date.now();
-      const timestampCorreo = new Date(fechaCorreo).getTime();
-      const diferenciaMinutos = (ahora - timestampCorreo) / (1000 * 60);
-
-      // Formatear hora de recepción para mostrar si está vencido
-      const fechaObj = new Date(timestampCorreo);
-      const horaFormateada = !isNaN(fechaObj.getTime()) ? fechaObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : 'Desconocida';
-
-      if (isNaN(diferenciaMinutos) || diferenciaMinutos > 13) {
-        lock.release();
-        await client.logout();
-        return res.json({
-          exito: false,
-          vencido: true,
-          hora: horaFormateada,
-          error: 'ENLACE VENCIDO: PEDIR FOTO AL CLIENTE COMO QUE ENVIO Y CORROBORAR EL CORREO DE LA PANTALLA CON LA CONSULTA'
-        });
-      }
-
-      // Extracción del enlace
-      const enlaceValido = extraerEnlaceDelCuerpo(contenido);
-
-      if (!enlaceValido) {
-        lock.release();
-        await client.logout();
-        return res.status(404).json({ exito: false, error: 'No se encontró un enlace válido en el correo.' });
-      }
-
+    } finally {
       lock.release();
-      await client.logout();
-
-      return res.json({
-        exito: true,
-        vencido: false,
-        enlace: enlaceValido,
-        hora: horaFormateada
-      });
-
-    } catch (err) {
-      lock.release();
-      throw err;
     }
+
+    if (!correoEncontrado || !fechaCorreo) {
+      return res.status(404).json({
+        exito: false,
+        error: 'No se encontraron correos recientes de verificación o hogar para este cliente.'
+      });
+    }
+
+    const fecha = new Date(fechaCorreo);
+    const minutos = (Date.now() - fecha.getTime()) / 60000;
+    const enlace = extraerEnlaceDelCuerpo(correoEncontrado);
+
+    return res.json({
+      exito: true,
+      servicio: 'Netflix',
+      asunto: correoEncontrado.subject || '',
+      fechaRecepcion: fecha.toISOString(),
+      vencido: minutos > 13,
+      enlace
+    });
 
   } catch (error) {
     console.error('Error en el servidor:', error);
-    if (client.usable) {
-      await client.logout();
-    }
     return res.status(500).json({ exito: false, error: 'Error al consultar la bandeja de entrada.' });
+  } finally {
+    try { await client.logout(); } catch (_) {}
   }
 });
 
