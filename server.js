@@ -49,48 +49,23 @@ if (!GMAIL_USER || !GMAIL_PASS) {
 }
 
 // ---------------------------------------------------------------------------
-// ASUNTOS VÁLIDOS
-// Devuelve el tipo de correo o null si no sirve.
-// 'verificacion' es ambiguo (puede ser de otro servicio), por eso después
-// se exige que el cuerpo mencione Netflix.
+// ASUNTOS VÁLIDOS: solo VIAJE (código de acceso temporal) y HOGAR
 // ---------------------------------------------------------------------------
-function tipoDeAsunto(asunto) {
-  const a = (asunto || '').toLowerCase();
+function esCorreoValido(parsed) {
+  const a = (parsed.subject || '').toLowerCase();
 
-  const esAcceso =
+  const esViaje =
     a.includes('obten tu cod') ||
     a.includes('obtén tu cod') ||
     a.includes('código de acceso temporal') ||
-    a.includes('codigo de acceso temporal') ||
-    a.includes('código de inicio de sesión') ||
-    a.includes('codigo de inicio de sesion') ||
-    a.includes('solicitud de inicio de sesión') ||
-    a.includes('solicitud de inicio de sesion');
+    a.includes('codigo de acceso temporal');
 
   const esHogar =
     a.includes('actualizar tu hogar') ||
     a.includes('cómo cambiar tu hogar') ||
     a.includes('como cambiar tu hogar');
 
-  const esVerificacion =
-    a.includes('código de verificación') ||
-    a.includes('codigo de verificacion');
-
-  if (esAcceso || esHogar) return 'normal';
-  if (esVerificacion) return 'verificacion';
-  return null;
-}
-
-function mencionaNetflix(parsed) {
-  const t = ((parsed.subject || '') + ' ' + (parsed.text || '') + ' ' + (parsed.html || '')).toLowerCase();
-  return t.includes('netflix');
-}
-
-function esCorreoValido(parsed) {
-  const tipo = tipoDeAsunto(parsed.subject);
-  if (tipo === 'normal') return true;
-  if (tipo === 'verificacion') return mencionaNetflix(parsed);
-  return false;
+  return esViaje || esHogar;
 }
 
 // ---------------------------------------------------------------------------
@@ -137,22 +112,7 @@ function extraerEnlace(parsed) {
   return validas.find(u => u.includes('netflix.com')) || validas[0] || null;
 }
 
-// ---------------------------------------------------------------------------
-// Extrae un código numérico (4 a 8 dígitos) si el correo lo trae en texto
-// ---------------------------------------------------------------------------
-function extraerCodigo(parsed) {
-  const textoPlano = (parsed.text || '') ||
-    (parsed.html || '').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ');
-  const texto = textoPlano.replace(/\s+/g, ' ');
-
-  let m = texto.match(/c[oó]digo[^0-9]{0,60}(\d{4,8})\b/i);
-  if (m) return m[1];
-
-  m = texto.match(/(?:^|\s)(\d{4,8})(?:\s|$)/);
-  return m ? m[1] : null;
-}
-
-app.get('/version', (req, res) => res.send('server nuevo v7 (streaminfinity + codigo + verificacion)'));
+app.get('/version', (req, res) => res.send('server nuevo v8 (solo viaje y hogar)'));
 
 app.post('/api/obtener-codigo', async (req, res) => {
   const { correoCliente } = req.body;
@@ -237,8 +197,7 @@ app.post('/api/obtener-codigo', async (req, res) => {
       asunto: correoEncontrado.subject || '',
       fechaRecepcion: fecha.toISOString(),
       vencido: minutos > 13,
-      enlace: extraerEnlace(correoEncontrado),
-      codigo: extraerCodigo(correoEncontrado)
+      enlace: extraerEnlace(correoEncontrado)
     });
 
   } catch (error) {
